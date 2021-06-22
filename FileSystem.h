@@ -69,18 +69,30 @@ extern BiSet* DataBitMap;
 struct Block {
 	uint16_t FCS = 0;					//循环校验码
 	uint16_t Size;						//块内有效数据的长度
-	uint8_t data[];
 
 	//PointerBlock : BlockIndex[]
 	//Data		   : uint8_t[]
 	//Dir		   : FCBIndex[]
 };
 
+struct DataBlock :Block
+{
+	uint8_t data[];
+};
+struct PointerBlock :Block
+{
+	BlockIndex data[];
+};
+struct DirBlock :Block
+{
+	FCBIndex data[];
+};
+
 //文件控制段（一个Block里可以存放多个FCB）
 struct FileControlBlock {
 	FileControlBlock operator=(FileControlBlock& val);
 	FileControlBlock();
-	FileControlBlock(FileType t, char* name, uint8_t AccessMode);
+	FileControlBlock(enum FileType t, const char* name, uint8_t AccessMode, FCBIndex parent);
 
 
 	char Name[32];
@@ -88,10 +100,11 @@ struct FileControlBlock {
 	uint32_t Size;
 	time_t CreateTime, ModifyTime, ReadTime;
 	uint8_t AccessMode;
+	FCBIndex Parent;
 	BlockIndex DirectBlock[10] = { -1,-1,-1,-1,-1,-1,-1,-1,-1,-1 };
 	BlockIndex Pointer = -1;
 
-	uint8_t __padding[14];
+	uint8_t __padding[6];
 };
 
 
@@ -99,7 +112,7 @@ void FormatDisk(uint32_t blocksize = 1 << 10, uint32_t FCBBlockNum = 0);
 void Login(string userName, string password);
 void PrintInfo();
 void PrintDir(FCBIndex dir);
-bool CreateFile(string name, FCBIndex parent);
-bool DeleteFile();
+bool CreateFile(string name, FCBIndex dir);
+bool DeleteFile(FCBIndex file);
 bool CreateDirectory(string name, FCBIndex parent);
 

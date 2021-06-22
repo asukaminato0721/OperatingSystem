@@ -1,7 +1,7 @@
 #include "Driver.h"
 
 uint8_t* Disk;
-size_t Size = 50 * 1 << 20;//30MByte
+size_t Size = 200 * 1 << 20;//30MByte
 
 bool initDisk() {
 	Disk = (uint8_t*)malloc(sizeof(uint8_t) * Size);
