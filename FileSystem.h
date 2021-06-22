@@ -108,11 +108,52 @@ struct FileControlBlock {
 };
 
 
-void FormatDisk(uint32_t blocksize = 1 << 10, uint32_t FCBBlockNum = 0);
 void Login(string userName, string password);
-void PrintInfo();
-void PrintDir(FCBIndex dir);
-bool CreateFile(string name, FCBIndex dir);
-bool DeleteFile(FCBIndex file);
-bool CreateDirectory(string name, FCBIndex parent);
 
+
+
+
+
+void PrintInfo();
+
+void FormatDisk(uint32_t blocksize = 1 << 10, uint32_t FCBBlockNum = 0);
+
+FCBIndex CreateDirectory(string name, FCBIndex parent);
+FCBIndex CreateFile(string name, FCBIndex dir);
+bool DeleteFile(FCBIndex file);
+
+void PrintDir(FCBIndex dir);//ls
+
+
+
+void Load();
+/// <summary>
+/// 查询某目录下的文件FCB号
+/// </summary>
+/// <param name="dir">待查找目录</param>
+/// <param name="filename">待查找的文件名</param>
+/// <returns>查找到的FCB号，如果未查到或dir不是目录，则返回-1</returns>
+FCBIndex Find(FCBIndex dir, string filename);
+/// <summary>
+/// 读取文件
+/// </summary>
+/// <param name="file">文件FCB编号</param>
+/// <param name="pos">读取起始点</param>
+/// <param name="buff">缓冲区</param>
+/// <param name="len">读取长度</param>
+/// <returns>返回最后读取位置的下一位</returns>
+uint64_t ReadFile(FCBIndex file, uint64_t pos, uint64_t len, uint8_t* buff);
+
+/// <summary>
+/// 写入文件
+/// </summary>
+/// <param name="file">文件FCB编号</param>
+/// <param name="pos">写入起始点</param>
+/// <param name="buff">缓冲区</param>
+/// <param name="len">写入长度</param>
+/// <returns>返回最后写入位置的下一位</returns>
+uint64_t WriteFile(FCBIndex file, uint64_t pos, uint64_t len, uint8_t* buff);
+
+
+
+uint64_t FileInfo(FCBIndex file, FileControlBlock* fcb);
