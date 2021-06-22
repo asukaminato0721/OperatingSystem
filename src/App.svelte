@@ -15,6 +15,13 @@
       this.children = [];
     }
   }
+  let logo = String.raw`
+             _ _                      _          _ _ 
+  ___  _ __ | (_)_ __   ___       ___| |__   ___| | |
+ / _ \| '_ \| | | '_ \ / _ \_____/ __| '_ \ / _ \ | |
+| (_) | | | | | | | | |  __/_____\__ \ | | |  __/ | |
+ \___/|_| |_|_|_|_| |_|\___|     |___/_| |_|\___|_|_|
+`;
   let 文件树 = new TreeNode("~");
   let 路径历史: TreeNode[] = [文件树];
   let 前缀;
@@ -162,7 +169,12 @@
 </script>
 
 <svelte:window on:keydown={按键按下} />
-
+<div>
+  <textarea
+    style="font-family: Consolas;height: 10rem;width: 80rem;border-color: transparent; "
+    value={logo}
+  />
+</div>
 {#each 显示的指令历史 as 指令}
   ----------------------------------------------------
   <div>
