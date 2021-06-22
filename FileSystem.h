@@ -1,6 +1,12 @@
 #pragma once
 #include <cstdint>
 #include <string>
+#include <stdio.h>
+#include <stdlib.h>
+#include <conio.h>
+#include <string.h>
+#include <iostream>
+#include <vector>
 
 
 using namespace std;
@@ -154,6 +160,8 @@ uint64_t ReadFile(FCBIndex file, uint64_t pos, uint64_t len, uint8_t* buff);
 /// <returns>返回最后写入位置的下一位</returns>
 uint64_t WriteFile(FCBIndex file, uint64_t pos, uint64_t len, uint8_t* buff);
 
-
-
 uint64_t FileInfo(FCBIndex file, FileControlBlock* fcb);
+
+void login();
+void pathset();//获取文件路径，用于回显
+int  analyse();//分析指令
