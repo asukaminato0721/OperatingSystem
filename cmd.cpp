@@ -121,7 +121,22 @@ void init() {
 }
 
 //设置文件路径，用于回显
-void pathset() { string s; }
+void pathset() {
+    string s;
+    if (inum_cur == 0)s = "";
+    else {
+        FCBIndex temp = inum_cur;
+        FileControlBlock* fcb;
+        while (temp != 0)
+        {
+            Getfcb(temp, fcb);
+            s = fcb->Name + s;
+            s = '/' + s;
+            temp = fcb->Parent;
+        }
+    }
+    cout << user.user_name << "@" << "4423" << ":~" << s << "# ";
+}
 
 /*功能: 显示帮助命令*/
 void help() {
@@ -294,6 +309,22 @@ int readby(string path) {	//根据当前目录和第二个参数确定转过去的目录
 	return result_cur;
 }
 
+void mkdir() {
+    int i;
+    if (s2.length() == 0) {
+        cout << "Please input name" << endl;
+        return;
+    }
+    else {
+
+    }
+}
+
+// 功能: 显示错误
+void errcmd()
+{
+    printf("Command Error!!!\n");
+}
 
 // 功能: 循环执行用户输入的命令, 直到logout
 //  0"help", 1"cd", 2"ls", 3"mkdir", 4"touch", 5"open",6"cat", 7"vi", 8"close", 9"rm", 10"su", 11"clear", 12"format",13"exit",14"rmdir",15"info",16"copy"
