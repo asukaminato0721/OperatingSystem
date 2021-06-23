@@ -246,6 +246,8 @@ void cd(string path)
 	}
 }
 
+
+
 // bin/xx 给出进入bin即可
 // result_cur 最终cd到的文件节点号
 // s2 cd 后面的路由串
@@ -316,8 +318,12 @@ void mkdir() {
         return;
     }
     else {
-
+        CreateDirectory(s2,inum_cur);
     }
+}
+
+void info() {
+    PrintDiskInfo();
 }
 
 // 功能: 显示错误
@@ -340,7 +346,7 @@ void command(void) {
             help();
             break;
         case 1:
-            cd();
+            cd(s2);
             break;
         case 2:
             ls();
