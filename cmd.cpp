@@ -390,58 +390,20 @@ void dir(string path)
     }
 }
 
+//cmd创建文件函数，在当前目录下创建文件夹
 void mkdir()
 {
     int i;
     if (s2.empty())
     {
-        cout << "Please input name" << endl;
+        cout << "Please input directery name" << endl;
         return;
     }
     else
     {
-        CreateDirectory(s2, inum_cur);
+        CreateDirectory(s2, inum_cur);//调用底层函数创建
     }
 }
-
-// 功能: 在当前目录下创建子目录(mkdir dir1)
-void mkdir(void)
-{
-	int i;
-	if (s2.length() == 0) {
-		cout << "Please input name" << endl;
-		return;
-	}
-	// 查找内存中是否有同名目录
-	for (i = 0; i < INODENUM; i++) {
-		if (inode_array[i].iparent == inum_cur && inode_array[i].type == 'd'
-			&& inode_array[i].file_name == s2 && inode_array[i].inum > 0
-			&& !strcmp(inode_array[i].user_name, user.user_name)) {
-			break;
-		}
-	}
-	if (i != INODENUM) {
-		printf("There is directory having same name.\n");
-		return;
-	}
-	for (i = 0; i < INODENUM; i++)  //遍历i节点数组, 查找未用的i节点
-		if (inode_array[i].inum < 0) break;
-	if (i == INODENUM)
-	{
-		printf("Inode is full.\n");
-		exit(-1);
-	}
-	// create directory
-	inode_array[i].inum = i;
-	strcpy(inode_array[i].file_name, s2.data());
-	inode_array[i].type = 'd';
-	strcpy(inode_array[i].user_name, user.user_name);
-	inode_array[i].iparent = inum_cur;
-	inode_array[i].length = 0;
-	// save to internal storage
-	save_inode(i);
-}
- 
 
 
 // 功能: 在当前目录下创建文件(creat file1)
