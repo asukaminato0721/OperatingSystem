@@ -404,6 +404,96 @@ void mkdir()
     }
 }
 
+// 功能: 在当前目录下创建子目录(mkdir dir1)
+void mkdir(void)
+{
+	int i;
+	if (s2.length() == 0) {
+		cout << "Please input name" << endl;
+		return;
+	}
+	// 查找内存中是否有同名目录
+	for (i = 0; i < INODENUM; i++) {
+		if (inode_array[i].iparent == inum_cur && inode_array[i].type == 'd'
+			&& inode_array[i].file_name == s2 && inode_array[i].inum > 0
+			&& !strcmp(inode_array[i].user_name, user.user_name)) {
+			break;
+		}
+	}
+	if (i != INODENUM) {
+		printf("There is directory having same name.\n");
+		return;
+	}
+	for (i = 0; i < INODENUM; i++)  //遍历i节点数组, 查找未用的i节点
+		if (inode_array[i].inum < 0) break;
+	if (i == INODENUM)
+	{
+		printf("Inode is full.\n");
+		exit(-1);
+	}
+	// create directory
+	inode_array[i].inum = i;
+	strcpy(inode_array[i].file_name, s2.data());
+	inode_array[i].type = 'd';
+	strcpy(inode_array[i].user_name, user.user_name);
+	inode_array[i].iparent = inum_cur;
+	inode_array[i].length = 0;
+	// save to internal storage
+	save_inode(i);
+}
+ 
+
+
+// 功能: 在当前目录下创建文件(creat file1)
+void touch(void)
+{
+	if (s2.length() == 0) {
+		printf("Please input filename.\n");
+		return;
+	}
+	int i, temp_cur; string temps1, temps2;
+	if (s2.find('/') != -1) {  // 要创建的file不在当前目录下，而是在路径中的指定文件下
+		temps1 = s2.substr(0, s2.find_last_of('/') + 1);
+		temps2 = s2.substr(s2.find_last_of('/') + 1);
+		s2 = temps1;
+		temp_cur = readby();
+		if (temp_cur == -1) {
+			printf("No Such Directory\n");
+		}
+	}
+	else {
+		temps2 = s2;
+		temp_cur = inum_cur;
+	}
+	for (i = 0; i < INODENUM; i++)  // 判断是否已存在同名文件
+		if ((inode_array[i].inum > 0) &&
+			(inode_array[i].type == '-') &&
+			temps2 == inode_array[i].file_name &&
+			inode_array[i].iparent == temp_cur &&
+			!strcmp(inode_array[i].user_name, user.user_name)) break;
+	if (i != INODENUM) {
+		printf("There is same file\n");
+		return;
+	}
+	for (i = 0; i < INODENUM; i++) // 查找一个空文件夹位置
+		if (inode_array[i].inum < 0) break;
+	if (i == INODENUM)    // 判断内存是否已满
+	{
+		printf("Inode is full.\n");
+		exit(-1);
+	}
+
+	// 创建文件file
+	inode_array[i].inum = i;
+	strcpy(inode_array[i].file_name, temps2.data());
+	inode_array[i].type = '-';
+	strcpy(inode_array[i].user_name, user.user_name);
+	inode_array[i].iparent = temp_cur;
+	inode_array[i].length = 0;
+	save_inode(i);  // 保存
+}
+
+
 void info()
 {
     PrintDiskInfo();
