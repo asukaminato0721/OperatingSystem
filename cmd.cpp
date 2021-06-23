@@ -211,6 +211,90 @@ int analyse() {
     return res; //返回命令编号
 }
 
+
+// 功能: 切换目录(cd .. 或者 cd dir1)
+void cd(string path)
+{
+	int temp_cur;
+	if (path.length() == 0) {
+		temp_cur = 0;
+	}
+	else {
+		if (path[path.length() - 1] != '/')  path += '/';
+		temp_cur = readby();
+	}
+	if (temp_cur != -1) {
+		inum_cur = temp_cur;
+	}
+	else {
+		cout << "No Such Directory" << endl;
+	}
+}
+
+// bin/xx 给出进入bin即可
+// result_cur 最终cd到的文件节点号
+// s2 cd 后面的路由串
+// inum_cur  当前文件的节点号
+int readby(string path) {	//根据当前目录和第二个参数确定转过去的目录
+	int result_cur = 0; string s = path;
+	if (s.find('/') != -1) {
+		s = s.substr(0, s.find_last_of('/') + 1);
+	}
+	else {
+		s = "";
+	}
+	int temp_cur = inum_cur;
+	vector<string> v;
+	while (s.find('/') != -1) {  // 将路径的每一级文件夹存入vector
+		v.push_back(s.substr(0, s.find_first_of('/')));  // 截取第1个斜杠之前的字符串
+		s = s.substr(s.find_first_of('/') + 1);  // 
+	}
+	if (v.size() == 0) { // 说明没有子目录，直接返回
+		return inum_cur;
+	}
+	if (v[0].length() == 0) { // 没有任何移动，依旧在当前文件夹
+		temp_cur = 0;
+	}
+	else if (v[0] == "..") { // 返回到上一级目录
+		if (inode_array[inum_cur].Size > 0) {  // 当前节点的节点数大于0
+			temp_cur = inode_array[inum_cur].Parent;
+		}
+	}
+	else {
+		int i;
+		/*
+		for (i = 0; i < INODENUM; i++) {
+			if ((inode_array[i].inum > 0) &&
+				(inode_array[i].iparent == inum_cur) &&  // 第i个节点的父节点是当前节点
+				(inode_array[i].type == 'd') &&
+				inode_array[i].file_name == v[0]) {  // 第i个节点的文件名是cd到的第一级文件名
+				break;  // 找到了第一级cd文件
+			}
+		}
+		*/
+		i = Find(inum_cur, v[0]);
+		if (i == INODENUM) { // 全部遍历完了，依旧没有，即没有该文件路径
+			return -1;
+		}
+		else {
+			temp_cur = i;  // 找到
+		}
+	}
+	int i;
+	for (unsigned int count = 1; count < v.size(); count++) { // 逐级找到cd的最终文件夹
+		i = Find(inum_cur, v[count]);
+		if (i == INODENUM) {
+			return -1;
+		}
+		else {
+			temp_cur = i;
+		}
+	}
+	result_cur = temp_cur;
+	return result_cur;
+}
+
+
 // 功能: 循环执行用户输入的命令, 直到logout
 //  0"help", 1"cd", 2"ls", 3"mkdir", 4"touch", 5"open",6"cat", 7"vi", 8"close", 9"rm", 10"su", 11"clear", 12"format",13"exit",14"rmdir",15"info",16"copy"
 void command(void) {
