@@ -24,12 +24,13 @@ int main()
 	//	CreateDirectory((string("Test") + to_string(i)).c_str(), 1);
 	//}
 
-	PrintInfo();
+	PrintDiskInfo();
 	printf("\n\n");
 	PrintDir(0);
 	PrintDir(dir2);
 	PrintDir(dir3);
 	PrintDir(dir4);
+
 
 	DeleteFile(data2);
 
@@ -37,8 +38,22 @@ int main()
 	PrintDir(0);
 	printf("\n\n");
 
-	PrintInfo();
+	PrintDiskInfo();
 	printf("\n\n");
+	printf("\n\n");
+	printf("\n\n");
+	printf("\n\n");
+	printf("\n\n");
+	printf("\n\n");
+	auto file = CreateFile("TestFile", 0);
+	PrintFileInfo(file);
+	WriteFile(file, 0, 5000, (uint8_t*)"hello world!");
+	//WriteFile(file, 0, 128, (uint8_t*)"hello world!");
+	PrintFileInfo(file);
+
+	PrintDir(0);
+	PrintDiskInfo();
+
 
 
 	std::cout << "Hello World!\n";

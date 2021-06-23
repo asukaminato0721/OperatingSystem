@@ -1,12 +1,6 @@
 #pragma once
 #include <cstdint>
 #include <string>
-#include <stdio.h>
-#include <stdlib.h>
-#include <conio.h>
-#include <string.h>
-#include <iostream>
-#include <vector>
 
 
 using namespace std;
@@ -74,7 +68,7 @@ extern BiSet* DataBitMap;
 
 struct Block {
 	uint16_t FCS = 0;					//循环校验码
-	uint16_t Size;						//块内有效数据的长度
+	uint16_t Size = 0;					//块内有效数据的长度
 
 	//PointerBlock : BlockIndex[]
 	//Data		   : uint8_t[]
@@ -118,21 +112,20 @@ void Login(string userName, string password);
 
 
 
+void Load();
 
 
-void PrintInfo();
+void PrintDiskInfo();
 
 void FormatDisk(uint32_t blocksize = 1 << 10, uint32_t FCBBlockNum = 0);
 
 FCBIndex CreateDirectory(string name, FCBIndex parent);
 FCBIndex CreateFile(string name, FCBIndex dir);
 bool DeleteFile(FCBIndex file);
+void PrintDir(FCBIndex dir);
+void PrintFileInfo(FCBIndex file);
 
-void PrintDir(FCBIndex dir);//ls
 
-
-
-void Load();
 /// <summary>
 /// 查询某目录下的文件FCB号
 /// </summary>
@@ -140,6 +133,8 @@ void Load();
 /// <param name="filename">待查找的文件名</param>
 /// <returns>查找到的FCB号，如果未查到或dir不是目录，则返回-1</returns>
 FCBIndex Find(FCBIndex dir, string filename);
+
+
 /// <summary>
 /// 读取文件
 /// </summary>
@@ -160,8 +155,6 @@ uint64_t ReadFile(FCBIndex file, uint64_t pos, uint64_t len, uint8_t* buff);
 /// <returns>返回最后写入位置的下一位</returns>
 uint64_t WriteFile(FCBIndex file, uint64_t pos, uint64_t len, uint8_t* buff);
 
-uint64_t FileInfo(FCBIndex file, FileControlBlock* fcb);
 
-void login();
-void pathset();//获取文件路径，用于回显
-int  analyse();//分析指令
+
+uint64_t FileInfo(FCBIndex file, FileControlBlock* fcb);
