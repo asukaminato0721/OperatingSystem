@@ -106,6 +106,8 @@ struct FileControlBlock {
 	uint8_t __padding[6];
 };
 
+extern SuperBlock Super;
+
 
 void Login(string userName, string password);
 

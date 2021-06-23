@@ -14,7 +14,6 @@ inline uint16_t& xxx(uint8_t* blockBuff) {
 
 int main()
 {
-
 	initDisk();
 	FormatDisk(1024);
 	auto dir1 = CreateDirectory("Dir1", 0);
