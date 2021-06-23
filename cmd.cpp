@@ -8,7 +8,7 @@ using namespace std;
 #include <iostream>
 #include <vector>
 
-#define BLKSIZE 1024  // 数据块的大小
+#define BLKSIZE Super.BlockSize  // 数据块的大小
 #define BLKNUM 512    // 数据块的块数
 #define INODESIZE 128 // （fcb）i节点的大小
 #define INODENUM 32   // i节点的数目
