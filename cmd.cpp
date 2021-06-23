@@ -1,4 +1,10 @@
 #include "FileSystem.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <conio.h>
+#include <string.h>
+#include <iostream>
+#include <vector>
 
 #define BLKSIZE 1024  // 数据块的大小
 #define BLKNUM 512    // 数据块的块数
@@ -121,7 +127,22 @@ void init() {
 }
 
 //设置文件路径，用于回显
-void pathset() { string s; }
+void pathset() {
+    string s;
+    if (inum_cur == 0)s = "";
+    else {
+        FCBIndex temp = inum_cur;
+        FileControlBlock* fcb;
+        while (temp != 0)
+        {
+            Getfcb(temp, fcb);
+            s = fcb->Name + s;
+            s = '/' + s;
+            temp = fcb->Parent;
+        }
+    }
+    cout << user.user_name << "@" << "4423" << ":~" << s << "# ";
+}
 
 /*功能: 显示帮助命令*/
 void help() {
@@ -231,6 +252,8 @@ void cd(string path)
 	}
 }
 
+
+
 // bin/xx 给出进入bin即可
 // result_cur 最终cd到的文件节点号
 // s2 cd 后面的路由串
@@ -273,6 +296,26 @@ int readby(string path) {	//根据当前目录和第二个参数确定转过去的目录
 	return result_cur;
 }
 
+void mkdir() {
+    int i;
+    if (s2.length() == 0) {
+        cout << "Please input name" << endl;
+        return;
+    }
+    else {
+        CreateDirectory(s2,inum_cur);
+    }
+}
+
+void info() {
+    PrintDiskInfo();
+}
+
+// 功能: 显示错误
+void errcmd()
+{
+    printf("Command Error!!!\n");
+}
 
 // 功能: 循环执行用户输入的命令, 直到logout
 //  0"help", 1"cd", 2"ls", 3"mkdir", 4"touch", 5"open",6"cat", 7"vi", 8"close", 9"rm", 10"su", 11"clear", 12"format",13"exit",14"rmdir",15"info",16"copy"
@@ -288,7 +331,7 @@ void command(void) {
             help();
             break;
         case 1:
-            cd();
+            cd(s2);
             break;
         case 2:
             ls();

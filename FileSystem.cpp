@@ -5,6 +5,7 @@
 #define FILE_CONTROL_BLOCK_SIZE 128u
 #define MAX_POINTER ((Super.BlockSize-sizeof(Block))/sizeof(BlockIndex)+10)
 #define MAX_BLOCK_SPACE (Super.BlockSize-sizeof(Block))
+#define MAX(x,y) (((x)>(y))?(x):(y))
 
 
 BiSet::BiSet(uint32_t size)
@@ -124,6 +125,12 @@ void MakeDirBlock(FCBIndex firstIndex, uint8_t* buff) {
 		*(FCBIndex*)(buff + i) = -1;
 	}
 }
+inline uint16_t& BlockSize(uint8_t* blockBuff) {
+	return ((Block*)blockBuff)->Size;
+}
+inline uint16_t& BlockFCS(uint8_t* blockBuff) {
+	return ((Block*)blockBuff)->FCS;
+}
 
 bool AppendNewBlock(FileControlBlock* fcb, FCBIndex fcbIndex, uint8_t* blockBuff) {
 
@@ -242,7 +249,6 @@ public:
 	uint16_t Fcs;
 	uint16_t Size;
 };
-
 class PointerBlockManager :public BlockManager
 {
 public:
@@ -318,47 +324,62 @@ public:
 class FCBPointerManager
 {
 public:
-	void Load(FCBIndex index) {
-
-		LoadFCB(index, &fcb);
-		if (fcb.Pointer != -1) {
-			Pointer.load(fcb.Pointer);
-		}
+	FCBPointerManager() {
+		Pointer = (uint8_t*)malloc(Super.BlockSize);
+	}
+	~FCBPointerManager()
+	{
+		free(Pointer);
 	}
 
-	BlockIndex getBlockIndex(uint32_t index) {
-		if (index < 10) {
-			return fcb.DirectBlock[index];
+	void Load(FCBIndex index) {
+		LoadFCB(index, &FCB);
+		for (size_t i = 0; i < 10; i++)
+		{
+			BlockList.push_back(FCB.DirectBlock[i]);
 		}
-		else if (fcb.Pointer == -1) {
+		if (FCB.Pointer != -1) {
+			LoadBlock(FCB.Pointer, Pointer);
+			for (auto iter = (BlockIndex*)(Pointer + sizeof(Block)); iter < (BlockIndex*)(Pointer + Super.BlockSize); iter++)
+			{
+				BlockList.push_back(*iter);
+			}
+		}
+	}
+	//获取本文件的第index个块
+	BlockIndex GetBlockIndex(uint32_t index) {
+		if (index < 10) {
+			return FCB.DirectBlock[index];
+		}
+		else if (FCB.Pointer == -1) {
 			return -1;
 		}
 		else {
-			return *Pointer.loc(index % 10);
+			return *((BlockIndex*)(Pointer + sizeof(Block)) + (index % 10));
 		}
 	}
-
+	//增加新的块
 	BlockIndex AddNewBlock(uint8_t* blockBuff) {
 		BlockIndex blockIndex = -1;
 		for (int i = 0; i < 10; i++) {
-			if (fcb.DirectBlock[i] == -1) {
+			if (FCB.DirectBlock[i] == -1) {
 				blockIndex = getEmptyBlock();
 				DataBitMap->set(blockIndex, true);
 				StoreBlock(blockIndex, blockBuff);//写入数据块
-				fcb.DirectBlock[i] = blockIndex;//更新FCB
+				FCB.DirectBlock[i] = blockIndex;//更新FCB
 				goto AppendNewBlock_end;
 			}
 		}
-		if (fcb.Pointer != -1) {
+		if (FCB.Pointer != -1) {
 			uint8_t* pointerBuff = (uint8_t*)malloc(Super.BlockSize);
-			LoadBlock(fcb.Pointer, pointerBuff);
+			LoadBlock(FCB.Pointer, pointerBuff);
 			for (uint64_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(BlockIndex)) {
 				if (*(BlockIndex*)(pointerBuff + pos) == -1) {
 					blockIndex = getEmptyBlock();
 					DataBitMap->set(blockIndex, true);
 					StoreBlock(blockIndex, blockBuff);//写入数据块
 					*(BlockIndex*)(pointerBuff + pos) = blockIndex;
-					StoreBlock(fcb.Pointer, pointerBuff);//更新pointer块
+					StoreBlock(FCB.Pointer, pointerBuff);//更新pointer块
 					free(pointerBuff);
 					goto AppendNewBlock_end;
 				}
@@ -368,13 +389,36 @@ public:
 		}
 	AppendNewBlock_end:
 		WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//写入DataBlock的bitmap
-		StoreFCB(Self_Index, &fcb);
+		StoreFCB(Self_Index, &FCB);
 		return true;
 	}
-	FileControlBlock fcb;
-	PointerBlockManager Pointer;
-	FCBIndex Self_Index = -1;
+	//将第index页读入内存
+	BlockIndex ReadPage(uint32_t index, uint8_t* blockBuff) {
+		if (index < 10) {
+			if (FCB.DirectBlock[index] != -1) {
+				LoadBlock(FCB.DirectBlock[index], blockBuff);
+				return FCB.DirectBlock[index];
+			}
+			else {
+				return -1;
+			}
+		}
+		else {
+			auto blockId = *((BlockIndex*)(Pointer + sizeof(Block)) + (index % 10));
+			if (blockId != -1) {
+				LoadBlock(blockId, blockBuff);
+				return blockId;
+			}
+			else {
+				return -1;
+			}
+		}
+	}
 
+	FileControlBlock FCB;
+	uint8_t* Pointer;
+	FCBIndex Self_Index = -1;
+	vector<BlockIndex> BlockList;
 
 };
 
@@ -570,126 +614,66 @@ FCBIndex Find(FCBIndex dir, string filename)
 	}
 }
 
-FCBIndex CreateDirectory(string name, FCBIndex parent) {
-	if (name.length() > 30) {
-		printf("Directory Name Too long!\n");
-		return -1;
-	}
-
-	//构建目录文件的DataBlock
-	uint8_t* BlockBuff = (uint8_t*)malloc(Super.BlockSize);
-
-	////构建目录块
-	//MakeDirBlock(parent, BlockBuff);
-	//BlockIndex StorgeLocation = getEmptyBlock();
-	//DataBitMap->set(StorgeLocation, true);																	//设置FCB的bitmap
-	//StoreBlock(StorgeLocation, BlockBuff);																	//写入DirectoryBlock
-
-
-	//构建目录FCB
-	FileControlBlock DirFCB(FileType::Directory, name.c_str(), (uint8_t)Access::Read | (uint8_t)Access::Write | (uint8_t)Access::Delete, parent);
-	//DirFCB.DirectBlock[0] = StorgeLocation;																			//设置dataBlock
-	FCBIndex newFcbIndex = getEmptyFCB();
-	FCBBitMap->set(newFcbIndex, true);																				//设置DataBlock的bitmap
-	StoreFCB(newFcbIndex, &DirFCB);
-
-
-	//读取父目录,并在其列表中添加本文件夹的FCBid
-	FileControlBlock ParentFCB;
-	LoadFCB(parent, &ParentFCB);
-	LoadBlock(ParentFCB.DirectBlock[0], BlockBuff);//BlockBuff存放子文件的FCBIndex
-	//TODO : 无法正确的检查重名。需要遍历所有块以检查重名
-	//TODO : 无法建立二级pointer索引
-	//检查0-9块
-	for (size_t i = 0; i < 10; i++)
-	{
-		//块已存在->找空位
-		if (ParentFCB.DirectBlock[i] != -1) {
-			LoadBlock(ParentFCB.DirectBlock[i], BlockBuff);//BlockBuff存放子文件的FCBIndex
-			for (int pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(FCBIndex)) {
-				FCBIndex fcbIndex = *(FCBIndex*)(BlockBuff + pos);
-				if (fcbIndex != -1) {
-					//检查重名
-					FileControlBlock NameCheck;
-					LoadFCB(fcbIndex, &NameCheck);
-					if (strcmp(NameCheck.Name, name.c_str()) == 0) {
-						printf("Error!Name duplicate!\n");
-						goto CreateDirectory_end;
-					}
-				}
-				else {
-					*(FCBIndex*)(BlockBuff + pos) = newFcbIndex;
-					StoreBlock(ParentFCB.DirectBlock[0], BlockBuff);
-					goto CreateDirectory_end;
-				}
-			}
-		}
-		else {
-			//块不存在->新建块
-			//创建新的块
-			((Block*)BlockBuff)->Size = 0;
-			for (size_t i = sizeof(Block); i < Super.BlockSize; i += sizeof(FCBIndex))
-			{
-				*(FCBIndex*)(BlockBuff + i) = -1;
-			}
-			*(FCBIndex*)(BlockBuff + sizeof(Block)) = newFcbIndex;
-			BlockIndex StorgeLocation = getEmptyBlock();
-			DataBitMap->set(StorgeLocation, true);			//设置FCB的bitmap
-			ParentFCB.DirectBlock[i] = StorgeLocation;
-			StoreBlock(StorgeLocation, BlockBuff);			//写入DirectoryBlock
-			StoreFCB(parent, &ParentFCB);
-			goto CreateDirectory_end;
-		}
-	}
-	//
-CreateDirectory_end:
-	WriteDisk(FCBBitMap->data, Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);				//写入FCB的bitmap
-	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//写入DataBlock的bitmap
-	free(BlockBuff);
-	return newFcbIndex;
-}
-
-FCBIndex CreateFile(string name, FCBIndex dir) {
+FCBIndex Create(string name, FCBIndex dir, enum FileType t) {
 	if (name.length() > 30) {
 		printf("Directory Name Too long!\n");
 		return -1;
 	}
 	uint8_t* BlockBuff = (uint8_t*)malloc(Super.BlockSize);
-	////构建Data块!空文件不构建Data块
-	//BlockIndex blockIndex = getEmptyBlock();
-	//DataBitMap->set(blockIndex, true);
-	//StoreBlock(blockIndex, BlockBuff);
+	//构建Data块!空文件不构建Data块
+
+
 	//构建FCB块
-	FileControlBlock fcb(FileType::File, name.c_str(), (uint8_t)Access::Read | (uint8_t)Access::Write | (uint8_t)Access::Delete, dir);
-	//fcb.DirectBlock[0] = blockIndex;
+	FileControlBlock fcb(t, name.c_str(), (uint8_t)Access::Read | (uint8_t)Access::Write | (uint8_t)Access::Delete, dir);
+	//FCB.DirectBlock[0] = blockIndex;
 	FCBIndex fcbIndex = getEmptyFCB();
 	FCBBitMap->set(fcbIndex, true);
 	StoreFCB(fcbIndex, &fcb);
-	//写入父目录
-	LoadFCB(dir, &fcb);
-	BlockIndex readBlockIndex;
-	DataReader reader(dir);
-	while (reader.ReadNextBlock(BlockBuff, &readBlockIndex))
+	//写入父目录(将fcbIndex写入父目录)
+	FileControlBlock dirFCB;
+	LoadFCB(dir, &dirFCB);
+	for (size_t i = 0; i < 10; i++)
 	{
-		for (uint64_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(FCBIndex)) {
-			if (*(FCBIndex*)(BlockBuff + pos) == -1) {
-				*(FCBIndex*)(BlockBuff + pos) = fcbIndex;
-				StoreBlock(readBlockIndex, BlockBuff);
-				goto CreateFile_end;
+		if (dirFCB.DirectBlock[i] == -1) {//存入新的目录页
+			MakeDirBlock(fcbIndex, BlockBuff);
+			BlockIndex newDirPage = getEmptyBlock();
+			DataBitMap->set(newDirPage, true);
+			dirFCB.DirectBlock[i] = newDirPage;
+			StoreBlock(newDirPage, BlockBuff);
+		}
+		else {//尝试加入现有目录页
+			LoadBlock(dirFCB.DirectBlock[i], BlockBuff);
+			for (FCBIndex* iter = (FCBIndex*)(BlockBuff + sizeof(Block)); iter < (FCBIndex*)(BlockBuff + Super.BlockSize); iter++)
+			{
+				if (*iter == -1) {
+					*iter = fcbIndex;
+					BlockSize(BlockBuff) += sizeof(FCBIndex);
+					StoreBlock(dirFCB.DirectBlock[i], BlockBuff);
+					goto CreateFile_end;
+				}
 			}
 		}
 	}
-	//所有表都满了，新增新表
-	MakeDirBlock(fcbIndex, BlockBuff);//制作空白dir块,其第一项为文件的FCB
-	AppendNewBlock(&fcb, dir, BlockBuff);//将dir块连接至父目录的fcb中
-	//TODO：未完成加入新的索引表（当前前一个索引表完全填满时，无法自动切换至下一张）
 
 CreateFile_end:
+	StoreFCB(dir, &dirFCB);
 	WriteDisk(FCBBitMap->data, Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);				//写入FCB的bitmap
 	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//写入DataBlock的bitmap
 	free(BlockBuff);
 	return fcbIndex;
 }
+
+
+FCBIndex CreateDirectory(string name, FCBIndex dir) {
+	return Create(name, dir, FileType::Directory);
+}
+
+FCBIndex CreateFile(string name, FCBIndex dir) {
+	return Create(name, dir, FileType::File);
+}
+
+
+
 
 bool DeleteFile(FCBIndex file) {
 	FileControlBlock thisFile;
@@ -771,77 +755,138 @@ DeleteFile_end:
 	return false;
 }
 
-uint64_t WriteFile(FCBIndex file, uint64_t pos, uint64_t len, uint8_t* buff)
+int64_t WriteFile(FCBIndex file, int64_t pos, int64_t len, uint8_t* buff)
 {
-	FCBPointerManager pointManager;
-	pointManager.Load(file);
-	if (pos > pointManager.fcb.Size) {
-		printf("Error:Pos is larger than file's size.\n");
+	FileControlBlock ThisFileFCB;
+	LoadFCB(file, &ThisFileFCB);
+	if (pos > ThisFileFCB.Size) {
+		printf("Error:pos = %lld is larger than file's size = %lu.\n", pos, ThisFileFCB.Size);
+		return -1;
+	}
+	else if (pos < 0) {
+		printf("Error:pos = %lld should larger than or equal to 0.\n", pos);
+		return -1;
+	}
+	else if (len < 0) {
+		printf("Error:len = %lld should larger than or equal to 0.\n", len);
 		return -1;
 	}
 	uint64_t inBlockPos = pos;
 	uint64_t StartPos = 0;
-	DataBlockManager dbm;
-	for (size_t i = 0; i < MAX_POINTER; i++)
+	uint8_t* blockBuff = (uint8_t*)malloc(Super.BlockSize);
+
+	FCBPointerManager PointerBlock;
+	PointerBlock.Load(file);
+
+	PointerBlock.FCB.Size = MAX(PointerBlock.FCB.Size, pos + len);
+
+	for (size_t PageNum = 0; PageNum < MAX_POINTER; PageNum++)
 	{
-		BlockIndex block = pointManager.getBlockIndex(i);
-		if (inBlockPos < Super.BlockSize - sizeof(Block)) {//找到当前块
-			if (block != -1) {//在本块内覆写
-				dbm.load(block);
-				if (inBlockPos + len <= MAX_BLOCK_SPACE) {//正好全部装下
-					pointManager.fcb.Size = pointManager.fcb.Size - dbm.Size + inBlockPos + len;
-					memcpy(dbm.BlockBuff + sizeof(Block) + inBlockPos, buff, len);
-					StartPos += len;
-					dbm.write(block, inBlockPos + len);
-					goto WriteFile_end;
-				}
-				else {//装不下
-					pointManager.fcb.Size = pointManager.fcb.Size - dbm.Size + MAX_BLOCK_SPACE;
-					memcpy(dbm.BlockBuff + sizeof(Block) + inBlockPos, buff, MAX_BLOCK_SPACE - inBlockPos);
-					StartPos += (MAX_BLOCK_SPACE - inBlockPos);
-					dbm.write(block, MAX_BLOCK_SPACE);
-					break;
-				}
-			}
-			else {//正好新的块
-				break;
-			}
+		BlockIndex block = PointerBlock.ReadPage(PageNum, blockBuff);
+		if (block == -1) {//写入起点是新的块
+			goto WriteFile_CreateNew;
 		}
-		else {//不在这个块
-			assert(block != -1);
-			dbm.load(block);
-			inBlockPos -= dbm.Size;
+		else if (inBlockPos < MAX_BLOCK_SPACE) {//写入起点是当前块
+			if (inBlockPos + len <= MAX_BLOCK_SPACE) {//在空隙中存下
+				memcpy(blockBuff + inBlockPos, buff, len);
+				BlockSize(blockBuff) = MAX(BlockSize(blockBuff), inBlockPos + len);
+				StoreBlock(block, blockBuff);
+				goto WriteFile_end;
+			}
+			else {//存不下->填满空隙
+				memcpy(blockBuff + inBlockPos, buff, MAX_BLOCK_SPACE - inBlockPos);
+				BlockSize(blockBuff) = MAX_BLOCK_SPACE;
+				StoreBlock(block, blockBuff);
+				StartPos += MAX_BLOCK_SPACE - inBlockPos;//写了MAX_BLOCK_SPACE - inBlockPos个字节
+				goto WriteFile_CreateNew;
+			}
+
+		}
+		else {//写入起点还在后面
+			inBlockPos -= BlockSize(blockBuff);
 		}
 	}
 
-	//将剩下的len长度装入新块
-
+WriteFile_CreateNew:
+	//将buff从StartPos ~ len之间的部分写入新块
 
 	while (StartPos < len)
 	{
 		if (len - StartPos >= MAX_BLOCK_SPACE) {//写满本块
-			pointManager.fcb.Size = pointManager.fcb.Size + MAX_BLOCK_SPACE;
-			dbm.Fcs = 0;
-			dbm.Size = MAX_BLOCK_SPACE;
-			dbm.makeBuffer();
-			memcpy(dbm.BlockBuff + sizeof(Block), buff + StartPos, MAX_BLOCK_SPACE);
-			pointManager.AddNewBlock(dbm.BlockBuff);
+			//pointerBlock.FCB.Size += MAX_BLOCK_SPACE;
+			BlockSize(blockBuff) = MAX_BLOCK_SPACE;
+			memcpy(blockBuff + sizeof(Block), buff + StartPos, MAX_BLOCK_SPACE);
+			PointerBlock.AddNewBlock(blockBuff);
 			StartPos += MAX_BLOCK_SPACE;
 		}
 		else {//还剩空间
-			pointManager.fcb.Size = pointManager.fcb.Size + (len - StartPos);
-			dbm.Fcs = 0;
-			dbm.Size = len;
-			dbm.makeBuffer();
-			memcpy(dbm.BlockBuff + sizeof(Block), buff + StartPos, len - StartPos);
-			pointManager.AddNewBlock(dbm.BlockBuff);
+			//pointerBlock.FCB.Size += (len - StartPos);
+			BlockSize(blockBuff) = len;
+			memcpy(blockBuff + sizeof(Block), buff + StartPos, len - StartPos);
+			PointerBlock.AddNewBlock(blockBuff);
 			StartPos += (len - StartPos);
 		}
 	}
 
 WriteFile_end:
-	StoreFCB(file, &pointManager.fcb);
+	free(blockBuff);
+	StoreFCB(file, &PointerBlock.FCB);
 	return pos + len;
 }
 
+int64_t ReadFile(FCBIndex file, int64_t pos, int64_t len, uint8_t* buff)
+{
+	FileControlBlock ThisFileFCB;
+	LoadFCB(file, &ThisFileFCB);
+	if (pos + len > ThisFileFCB.Size) {
+		printf("Error:pos+len = %ld is larger than file's size = %lu.\n", pos + len, ThisFileFCB.Size);
+		return -1;
+	}
+	else if (pos < 0) {
+		printf("Error:pos = %ld should larger than or equal to 0.\n", pos);
+		return -1;
+	}
+	else if (len < 0) {
+		printf("Error:len = %ld should larger than or equal to 0.\n", len);
+		return -1;
+	}
+	uint64_t inBlockPos = pos;
+	uint64_t BytesToBeRead = len;
+	uint8_t* blockBuff = (uint8_t*)malloc(Super.BlockSize);
 
+	FCBPointerManager pointerBlock;
+	pointerBlock.Load(file);
+	size_t PageNum;
+	for (PageNum = 0; PageNum < MAX_POINTER; PageNum++)
+	{
+		BlockIndex block = pointerBlock.ReadPage(PageNum, blockBuff);
+
+		if (inBlockPos < MAX_BLOCK_SPACE) {//从此块开始读
+			goto ReadFile_StartToRead;
+		}
+		else {//读取起点还在后面
+			inBlockPos -= BlockSize(blockBuff);
+		}
+	}
+
+ReadFile_StartToRead:
+	//从文件的第PageNum块inBlockOffset字节开始，读取BytesToBeRead字节的数据
+
+	for (; BytesToBeRead > 0; ++PageNum)
+	{
+		BlockIndex block = pointerBlock.ReadPage(PageNum, blockBuff);
+		if (BytesToBeRead >= BlockSize(blockBuff)) {//读完整块
+			memcpy(buff + (len - BytesToBeRead), blockBuff + sizeof(Block), BlockSize(blockBuff));
+			BytesToBeRead -= BlockSize(blockBuff);
+		}
+		else {//读取一部分
+			memcpy(buff + (len - BytesToBeRead), blockBuff + sizeof(Block), BytesToBeRead);
+			BytesToBeRead -= BytesToBeRead;
+		}
+	}
+
+ReadFile_end:
+	free(blockBuff);
+	StoreFCB(file, &pointerBlock.FCB);
+	return pos + len;
+}
