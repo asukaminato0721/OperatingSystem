@@ -51,29 +51,29 @@ enum class FileType :uint8_t
 {
 	File, Directory
 };
-//ï¿½ï¿½ï¿½ï¿½ï¿½é£¨ï¿½ï¿½Â¼ï¿½Ì¿ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½
+//?????÷Ï???????????
 struct SuperBlock
 {
-	uint16_t FCS = 0;								//Ñ­ï¿½ï¿½Ð£ï¿½ï¿½ï¿½ï¿½
+	uint16_t FCS = 0;								//???§µ????
 
-	uint32_t DiskSize;								//ï¿½ï¿½ï¿½Ì´ï¿½Ð¡
-	uint32_t BlockSize;								//ï¿½ï¿½ï¿½Ð¡
-	uint32_t BlockNum;								//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(=DISK_SIZE/ï¿½ï¿½ï¿½Ð¡)
-	BlockIndex FCBBitmapOffset;						//FCBï¿½ï¿½Î»Ê¾Í¼ï¿½Ð±ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½
-	BlockIndex DataBitmapOffset;					//Dataï¿½ï¿½Î»Ê¾Í¼ï¿½ï¿½ï¿½Ý¿é¿ªÊ¼ï¿½ï¿½ï¿½
-	BlockIndex FCBOffset;					     	//FCBï¿½Ð±ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½
-	BlockIndex DataOffset;							//Dataï¿½ï¿½ï¿½Ý¿é¿ªÊ¼ï¿½ï¿½ï¿½
-	uint32_t FCBNum, DataBlockNum;				    //FCBï¿½ï¿½ï¿½ï¿½ï¿½ï¿½DataBlockï¿½ï¿½ï¿½ï¿½
+	uint32_t DiskSize;								//?????§³
+	uint32_t BlockSize;								//???§³
+	uint32_t BlockNum;								//??????(=DISK_SIZE/???§³)
+	BlockIndex FCBBitmapOffset;						//FCB??¦Ë???§Ò???????
+	BlockIndex DataBitmapOffset;					//Data??¦Ë???????????
+	BlockIndex FCBOffset;					     	//FCB?§Ò???????
+	BlockIndex DataOffset;							//Data?????????
+	uint32_t FCBNum, DataBlockNum;				    //FCB??????DataBlock????
 };
 
-//FCBï¿½ï¿½bitmap
+//FCB??bitmap
 extern BiSet* FCBBitMap;
-//Dataï¿½ï¿½ï¿½Ý¿ï¿½ï¿½bitmap
+//Data??????bitmap
 extern BiSet* DataBitMap;
 
 struct Block {
-	uint16_t FCS = 0;					//Ñ­ï¿½ï¿½Ð£ï¿½ï¿½ï¿½ï¿½
-	uint16_t Size = 0;					//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½ï¿½ï¿½ÝµÄ³ï¿½ï¿½ï¿½
+	uint16_t FCS = 0;					//???§µ????
+	uint16_t Size = 0;					//??????§¹????????
 
 	//PointerBlock : BlockIndex[]
 	//Data		   : uint8_t[]
@@ -93,7 +93,7 @@ struct DirBlock :Block
 	FCBIndex data[];
 };
 
-//ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½Æ¶Î£ï¿½Ò»ï¿½ï¿½Blockï¿½ï¿½ï¿½ï¿½Ô´ï¿½Å¶ï¿½ï¿½FCBï¿½ï¿½
+//???????¦²????Block?????????FCB??
 struct FileControlBlock {
 	FileControlBlock operator=(FileControlBlock& val);
 	FileControlBlock();
@@ -132,32 +132,32 @@ void PrintFileInfo(FCBIndex file);
 
 
 /// <summary>
-/// ï¿½ï¿½Ñ¯Ä³Ä¿Â¼ï¿½Âµï¿½ï¿½Ä¼ï¿½FCBï¿½ï¿½
+/// ????????????FCB??
 /// </summary>
-/// <param name="dir">ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Â¼</param>
-/// <param name="filename">ï¿½ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½Ä¼ï¿½ï¿½ï¿½</param>
-/// <returns>ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½FCBï¿½Å£ï¿½ï¿½ï¿½ï¿½Î´ï¿½éµ½ï¿½ï¿½dirï¿½ï¿½ï¿½ï¿½Ä¿Â¼ï¿½ï¿½ï¿½ò·µ»ï¿½-1</returns>
+/// <param name="dir">????????</param>
+/// <param name="filename">????????????</param>
+/// <returns>???????FCB??????¦Ä?ùz??dir???????????-1</returns>
 FCBIndex Find(FCBIndex dir, string filename);
 
 
 /// <summary>
-/// ï¿½ï¿½È¡ï¿½Ä¼ï¿½
+/// ??????
 /// </summary>
-/// <param name="file">ï¿½Ä¼ï¿½FCBï¿½ï¿½ï¿½</param>
-/// <param name="pos">ï¿½ï¿½È¡ï¿½ï¿½Ê¼ï¿½ï¿½</param>
-/// <param name="buff">ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½</param>
-/// <param name="len">ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½</param>
-/// <returns>ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡Î»ï¿½Ãµï¿½ï¿½ï¿½Ò»Î»</returns>
+/// <param name="file">???FCB???</param>
+/// <param name="pos">????????</param>
+/// <param name="buff">??????</param>
+/// <param name="len">???????</param>
+/// <returns>?????????¦Ë??????¦Ë</returns>
 uint64_t ReadFile(FCBIndex file, uint64_t pos, uint64_t len, uint8_t* buff);
 
 /// <summary>
-/// Ð´ï¿½ï¿½ï¿½Ä¼ï¿½
+/// §Õ?????
 /// </summary>
-/// <param name="file">ï¿½Ä¼ï¿½FCBï¿½ï¿½ï¿½</param>
-/// <param name="pos">Ð´ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½</param>
-/// <param name="buff">ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½</param>
-/// <param name="len">Ð´ï¿½ë³¤ï¿½ï¿½</param>
-/// <returns>ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½Î»ï¿½Ãµï¿½ï¿½ï¿½Ò»Î»</returns>
+/// <param name="file">???FCB???</param>
+/// <param name="pos">§Õ???????</param>
+/// <param name="buff">??????</param>
+/// <param name="len">§Õ????</param>
+/// <returns>???????§Õ??¦Ë??????¦Ë</returns>
 uint64_t WriteFile(FCBIndex file, uint64_t pos, uint64_t len, uint8_t* buff);
 
 

@@ -221,7 +221,7 @@ void cd(string path)
 	}
 	else {
 		if (path[path.length() - 1] != '/')  path += '/';
-		temp_cur = readby();
+		temp_cur = readby(path);
 	}
 	if (temp_cur != -1) {
 		inum_cur = temp_cur;
@@ -256,39 +256,18 @@ int readby(string path) {	//根据当前目录和第二个参数确定转过去的目录
 		temp_cur = 0;
 	}
 	else if (v[0] == "..") { // 返回到上一级目录
-		if (inode_array[inum_cur].Size > 0) {  // 当前节点的节点数大于0
+		/*
+        if (inode_array[inum_cur].Size > 0) {  // 当前节点的节点数大于0
 			temp_cur = inode_array[inum_cur].Parent;
 		}
+        */
+        temp_cur = Find(inum_cur, v[0]);  // 返回上一级目录的目录号
 	}
 	else {
-		int i;
-		/*
-		for (i = 0; i < INODENUM; i++) {
-			if ((inode_array[i].inum > 0) &&
-				(inode_array[i].iparent == inum_cur) &&  // 第i个节点的父节点是当前节点
-				(inode_array[i].type == 'd') &&
-				inode_array[i].file_name == v[0]) {  // 第i个节点的文件名是cd到的第一级文件名
-				break;  // 找到了第一级cd文件
-			}
-		}
-		*/
-		i = Find(inum_cur, v[0]);
-		if (i == INODENUM) { // 全部遍历完了，依旧没有，即没有该文件路径
-			return -1;
-		}
-		else {
-			temp_cur = i;  // 找到
-		}
+		temp_cur = Find(inum_cur, v[0]);
 	}
-	int i;
 	for (unsigned int count = 1; count < v.size(); count++) { // 逐级找到cd的最终文件夹
-		i = Find(inum_cur, v[count]);
-		if (i == INODENUM) {
-			return -1;
-		}
-		else {
-			temp_cur = i;
-		}
+		temp_cur = Find(temp_cur, v[count]);
 	}
 	result_cur = temp_cur;
 	return result_cur;
