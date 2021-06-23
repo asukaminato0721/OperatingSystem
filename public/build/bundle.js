@@ -73,6 +73,37 @@ var app = (function () {
         e.initCustomEvent(type, false, false, detail);
         return e;
     }
+    class HtmlTag {
+        constructor(anchor = null) {
+            this.a = anchor;
+            this.e = this.n = null;
+        }
+        m(html, target, anchor = null) {
+            if (!this.e) {
+                this.e = element(target.nodeName);
+                this.t = target;
+                this.h(html);
+            }
+            this.i(anchor);
+        }
+        h(html) {
+            this.e.innerHTML = html;
+            this.n = Array.from(this.e.childNodes);
+        }
+        i(anchor) {
+            for (let i = 0; i < this.n.length; i += 1) {
+                insert(this.t, this.n[i], anchor);
+            }
+        }
+        p(html) {
+            this.d();
+            this.h(html);
+            this.i(this.a);
+        }
+        d() {
+            this.n.forEach(detach);
+        }
+    }
 
     let current_component;
     function set_current_component(component) {
@@ -357,30 +388,29 @@ var app = (function () {
 
     function get_each_context(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[13] = list[i];
+    	child_ctx[14] = list[i];
     	return child_ctx;
     }
 
     function get_each_context_1(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[16] = list[i];
+    	child_ctx[17] = list[i];
     	return child_ctx;
     }
 
-    // (162:0) {#each 显示的指令历史 as 指令}
+    // (170:0) {#each 显示的指令历史 as 指令}
     function create_each_block_1(ctx) {
     	let t0;
     	let div0;
-    	let t1_value = /*指令*/ ctx[16].当前路径.map(func).join("/") + "";
+    	let t1_value = /*指令*/ ctx[17].当前路径.map(func).join("/") + "";
     	let t1;
     	let t2;
     	let div1;
-    	let t3_value = /*指令*/ ctx[16].目前指令 + "";
+    	let t3_value = /*指令*/ ctx[17].目前指令 + "";
     	let t3;
     	let t4;
     	let div2;
-    	let t5_value = /*指令*/ ctx[16].指令结果 + "";
-    	let t5;
+    	let raw_value = /*指令*/ ctx[17].指令结果 + "";
 
     	const block = {
     		c: function create() {
@@ -392,10 +422,9 @@ var app = (function () {
     			t3 = text(t3_value);
     			t4 = space();
     			div2 = element("div");
-    			t5 = text(t5_value);
-    			add_location(div0, file, 163, 2, 4333);
-    			add_location(div1, file, 166, 2, 4393);
-    			add_location(div2, file, 167, 2, 4416);
+    			add_location(div0, file, 171, 2, 4493);
+    			add_location(div1, file, 174, 2, 4553);
+    			add_location(div2, file, 175, 2, 4576);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, t0, anchor);
@@ -406,13 +435,12 @@ var app = (function () {
     			append_dev(div1, t3);
     			insert_dev(target, t4, anchor);
     			insert_dev(target, div2, anchor);
-    			append_dev(div2, t5);
+    			div2.innerHTML = raw_value;
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*显示的指令历史*/ 2 && t1_value !== (t1_value = /*指令*/ ctx[16].当前路径.map(func).join("/") + "")) set_data_dev(t1, t1_value);
-    			if (dirty & /*显示的指令历史*/ 2 && t3_value !== (t3_value = /*指令*/ ctx[16].目前指令 + "")) set_data_dev(t3, t3_value);
-    			if (dirty & /*显示的指令历史*/ 2 && t5_value !== (t5_value = /*指令*/ ctx[16].指令结果 + "")) set_data_dev(t5, t5_value);
-    		},
+    			if (dirty & /*显示的指令历史*/ 2 && t1_value !== (t1_value = /*指令*/ ctx[17].当前路径.map(func).join("/") + "")) set_data_dev(t1, t1_value);
+    			if (dirty & /*显示的指令历史*/ 2 && t3_value !== (t3_value = /*指令*/ ctx[17].目前指令 + "")) set_data_dev(t3, t3_value);
+    			if (dirty & /*显示的指令历史*/ 2 && raw_value !== (raw_value = /*指令*/ ctx[17].指令结果 + "")) div2.innerHTML = raw_value;		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(t0);
     			if (detaching) detach_dev(div0);
@@ -427,31 +455,31 @@ var app = (function () {
     		block,
     		id: create_each_block_1.name,
     		type: "each",
-    		source: "(162:0) {#each 显示的指令历史 as 指令}",
+    		source: "(170:0) {#each 显示的指令历史 as 指令}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (176:0) {#each 显示的指令历史 as i}
+    // (184:0) {#each 显示的指令历史 as i}
     function create_each_block(ctx) {
     	let div;
-    	let t_value = JSON.stringify(/*i*/ ctx[13]) + "";
+    	let t_value = JSON.stringify(/*i*/ ctx[14]) + "";
     	let t;
 
     	const block = {
     		c: function create() {
     			div = element("div");
     			t = text(t_value);
-    			add_location(div, file, 176, 2, 4547);
+    			add_location(div, file, 184, 2, 4719);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
     			append_dev(div, t);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*显示的指令历史*/ 2 && t_value !== (t_value = JSON.stringify(/*i*/ ctx[13]) + "")) set_data_dev(t, t_value);
+    			if (dirty & /*显示的指令历史*/ 2 && t_value !== (t_value = JSON.stringify(/*i*/ ctx[14]) + "")) set_data_dev(t, t_value);
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(div);
@@ -462,7 +490,7 @@ var app = (function () {
     		block,
     		id: create_each_block.name,
     		type: "each",
-    		source: "(176:0) {#each 显示的指令历史 as i}",
+    		source: "(184:0) {#each 显示的指令历史 as i}",
     		ctx
     	});
 
@@ -477,8 +505,8 @@ var app = (function () {
     	let div1;
     	let input;
     	let t2;
+    	let html_tag;
     	let t3;
-    	let t4;
     	let each1_anchor;
     	let mounted;
     	let dispose;
@@ -512,8 +540,7 @@ var app = (function () {
     			div1 = element("div");
     			input = element("input");
     			t2 = space();
-    			t3 = text(/*指令结果*/ ctx[2]);
-    			t4 = space();
+    			t3 = space();
 
     			for (let i = 0; i < each_blocks.length; i += 1) {
     				each_blocks[i].c();
@@ -525,11 +552,12 @@ var app = (function () {
     			set_style(textarea, "width", "80rem");
     			set_style(textarea, "border-color", "transparent");
     			textarea.value = /*logo*/ ctx[3];
-    			add_location(textarea, file, 156, 2, 4126);
-    			add_location(div0, file, 155, 0, 4118);
+    			add_location(textarea, file, 164, 2, 4286);
+    			add_location(div0, file, 163, 0, 4278);
     			set_style(input, "width", "100%");
-    			add_location(input, file, 172, 2, 4461);
-    			add_location(div1, file, 171, 0, 4453);
+    			add_location(input, file, 180, 2, 4627);
+    			html_tag = new HtmlTag(null);
+    			add_location(div1, file, 179, 0, 4619);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -548,8 +576,8 @@ var app = (function () {
     			append_dev(div1, input);
     			set_input_value(input, /*目前指令*/ ctx[0]);
     			append_dev(div1, t2);
-    			append_dev(div1, t3);
-    			insert_dev(target, t4, anchor);
+    			html_tag.m(/*指令结果*/ ctx[2], div1);
+    			insert_dev(target, t3, anchor);
 
     			for (let i = 0; i < each_blocks.length; i += 1) {
     				each_blocks[i].m(target, anchor);
@@ -595,7 +623,7 @@ var app = (function () {
     				set_input_value(input, /*目前指令*/ ctx[0]);
     			}
 
-    			if (dirty & /*指令结果*/ 4) set_data_dev(t3, /*指令结果*/ ctx[2]);
+    			if (dirty & /*指令结果*/ 4) html_tag.p(/*指令结果*/ ctx[2]);
 
     			if (dirty & /*JSON, 显示的指令历史*/ 2) {
     				each_value = /*显示的指令历史*/ ctx[1];
@@ -629,7 +657,7 @@ var app = (function () {
     			destroy_each(each_blocks_1, detaching);
     			if (detaching) detach_dev(t1);
     			if (detaching) detach_dev(div1);
-    			if (detaching) detach_dev(t4);
+    			if (detaching) detach_dev(t3);
     			destroy_each(each_blocks, detaching);
     			if (detaching) detach_dev(each1_anchor);
     			mounted = false;
@@ -668,6 +696,8 @@ var app = (function () {
     		}
     	}
 
+    	let 当前路径 = () => 路径历史[路径历史.length - 1].children;
+
     	let logo = String.raw`
              _ _                      _          _ _ 
   ___  _ __ | (_)_ __   ___       ___| |__   ___| | |
@@ -684,13 +714,13 @@ var app = (function () {
     			[
     				"ls",
     				args => {
-    					return 路径历史[路径历史.length - 1].children.map(child => child.name).join(" ");
+    					return 当前路径().map(child => "<div>" + child.name + "   " + (child instanceof TreeNode ? "文件夹" : "文件" + "</div>")).join(" ");
     				}
     			],
     			[
     				"mkdir",
     				name => {
-    					路径历史[路径历史.length - 1].children.push(new TreeNode(name[0]));
+    					当前路径().push(...name.map(x => new TreeNode(x)));
     					return "";
     				}
     			],
@@ -699,30 +729,32 @@ var app = (function () {
     				_path => {
     					let path = _path[0];
 
-    					if (path === "..") {
-    						if (路径历史.length > 1) {
+    					if ([...path].every(x => x === ".")) {
+    						let l = path.length;
+
+    						while (l > 1 && 路径历史.length > 1) {
     							路径历史.pop();
+    							l--;
+    						}
+
+    						return "";
+    					} else {
+    						let 下一站 = 当前路径().find(x => x instanceof TreeNode && x.name === path);
+
+    						if (typeof 下一站 !== "undefined" && 下一站 instanceof TreeNode) {
+    							路径历史.push(下一站);
+    							console.log("新建成功");
     							return "";
     						} else {
     							return "can't cd to path";
     						}
-    					}
-
-    					let 下一站 = 路径历史[路径历史.length - 1].children.find(x => x instanceof TreeNode && x.name === path);
-
-    					if (typeof 下一站 !== "undefined" && 下一站 instanceof TreeNode) {
-    						路径历史.push(下一站);
-    						console.log("新建成功");
-    						return "";
-    					} else {
-    						return "can't cd to path";
     					}
     				}
     			],
     			[
     				"touch",
     				args => {
-    					路径历史[路径历史.length - 1].children.push(...args.map(x => new FileNode(x)));
+    					当前路径().push(...args.map(x => new FileNode(x)));
     					return "创建完成";
     				}
     			],
@@ -730,7 +762,7 @@ var app = (function () {
     				"cat",
     				args => {
     					let arg = args[0];
-    					let 文件 = 路径历史[路径历史.length - 1].children.find(x => x.name === arg && x instanceof FileNode);
+    					let 文件 = 当前路径().find(x => x.name === arg && x instanceof FileNode);
 
     					if (typeof 文件 !== "undefined" && 文件 instanceof FileNode) {
     						return 文件.content;
@@ -748,10 +780,10 @@ var app = (function () {
     				args => {
     					let 写入内容 = args[0];
     					let 目标文件 = args[2];
-    					let 文件 = 路径历史[路径历史.length - 1].children.find(x => x.name === 目标文件 && x instanceof FileNode);
+    					let 文件 = 当前路径().find(x => x.name === 目标文件 && x instanceof FileNode);
 
     					if (typeof 文件 === "undefined") {
-    						路径历史[路径历史.length - 1].children.push(new FileNode(目标文件, 写入内容));
+    						当前路径().push(new FileNode(目标文件, 写入内容));
     						return "";
     					}
 
@@ -766,6 +798,14 @@ var app = (function () {
     							return "";
     						}
     					}
+    				}
+    			],
+    			[
+    				"rm",
+    				args => {
+    					let set = new Set(args);
+    					$$invalidate(5, 路径历史[路径历史.length - 1].children = 当前路径().filter(x => !set.has(x.name)), 路径历史);
+    					return "删除成功";
     				}
     			]
     		]);
@@ -801,11 +841,6 @@ var app = (function () {
     			$$invalidate(2, 指令结果 = "");
     		}
 
-    		if (事件.key === "Tab") {
-    			let 单词列表 = 目前指令.split(" ");
-    			单词列表[单词列表.length - 1];
-    		} // TODO: 补全单词
-
     		console.log(事件.key);
     	};
 
@@ -823,6 +858,7 @@ var app = (function () {
     	$$self.$capture_state = () => ({
     		FileNode,
     		TreeNode,
+    		当前路径,
     		logo,
     		文件树,
     		路径历史,
@@ -836,6 +872,7 @@ var app = (function () {
     	});
 
     	$$self.$inject_state = $$props => {
+    		if ("当前路径" in $$props) 当前路径 = $$props.当前路径;
     		if ("logo" in $$props) $$invalidate(3, logo = $$props.logo);
     		if ("文件树" in $$props) 文件树 = $$props.文件树;
     		if ("路径历史" in $$props) $$invalidate(5, 路径历史 = $$props.路径历史);

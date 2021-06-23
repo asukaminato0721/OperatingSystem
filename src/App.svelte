@@ -15,6 +15,7 @@
       this.children = [];
     }
   }
+  let 当前路径 = () => 路径历史[路径历史.length - 1].children;
   let logo = String.raw`
              _ _                      _          _ _ 
   ___  _ __ | (_)_ __   ___       ___| |__   ___| | |
@@ -34,15 +35,21 @@
     [
       "ls",
       (args: string[]) => {
-        return 路径历史[路径历史.length - 1].children
-          .map((child) => child.name)
+        return 当前路径()
+          .map(
+            (child) =>
+              "<div>" +
+              child.name +
+              "   " +
+              (child instanceof TreeNode ? "文件夹" : "文件" + "</div>")
+          )
           .join(" ");
       },
     ],
     [
       "mkdir",
       (name: string[]) => {
-        路径历史[路径历史.length - 1].children.push(new TreeNode(name[0]));
+        当前路径().push(...name.map((x) => new TreeNode(x)));
         return "";
       },
     ],
@@ -50,32 +57,31 @@
       "cd",
       (_path: string[]) => {
         let path = _path[0];
-        if (path === "..") {
-          if (路径历史.length > 1) {
+        if ([...path].every((x) => x === ".")) {
+          let l = path.length;
+          while (l > 1 && 路径历史.length > 1) {
             路径历史.pop();
+            l--;
+          }
+          return "";
+        } else {
+          let 下一站 = 当前路径().find(
+            (x) => x instanceof TreeNode && x.name === path
+          );
+          if (typeof 下一站 !== "undefined" && 下一站 instanceof TreeNode) {
+            路径历史.push(下一站);
+            console.log("新建成功");
             return "";
           } else {
             return "can't cd to path";
           }
-        }
-        let 下一站 = 路径历史[路径历史.length - 1].children.find(
-          (x) => x instanceof TreeNode && x.name === path
-        );
-        if (typeof 下一站 !== "undefined" && 下一站 instanceof TreeNode) {
-          路径历史.push(下一站);
-          console.log("新建成功");
-          return "";
-        } else {
-          return "can't cd to path";
         }
       },
     ],
     [
       "touch",
       (args: string[]) => {
-        路径历史[路径历史.length - 1].children.push(
-          ...args.map((x) => new FileNode(x))
-        );
+        当前路径().push(...args.map((x) => new FileNode(x)));
         return "创建完成";
       },
     ],
@@ -83,7 +89,7 @@
       "cat",
       (args: string[]) => {
         let arg = args[0];
-        let 文件 = 路径历史[路径历史.length - 1].children.find(
+        let 文件 = 当前路径().find(
           (x) => x.name === arg && x instanceof FileNode
         );
         if (typeof 文件 !== "undefined" && 文件 instanceof FileNode) {
@@ -102,13 +108,11 @@
       (args: string[]) => {
         let 写入内容 = args[0];
         let 目标文件 = args[2];
-        let 文件 = 路径历史[路径历史.length - 1].children.find(
+        let 文件 = 当前路径().find(
           (x) => x.name === 目标文件 && x instanceof FileNode
         );
         if (typeof 文件 === "undefined") {
-          路径历史[路径历史.length - 1].children.push(
-            new FileNode(目标文件, 写入内容)
-          );
+          当前路径().push(new FileNode(目标文件, 写入内容));
           return "";
         }
         if (文件 instanceof FileNode) {
@@ -121,6 +125,16 @@
             return "";
           }
         }
+      },
+    ],
+    [
+      "rm",
+      (args: string[]) => {
+        let set = new Set(args);
+        路径历史[路径历史.length - 1].children = 当前路径().filter(
+          (x) => !set.has(x.name)
+        );
+        return "删除成功";
       },
     ],
   ]);
@@ -159,11 +173,6 @@
       目前指令 = "";
       指令结果 = "";
     }
-    if (事件.key === "Tab") {
-      let 单词列表 = 目前指令.split(" ");
-      let 待补全单词 = 单词列表[单词列表.length - 1];
-      // TODO: 补全单词
-    }
     console.log(事件.key);
   };
 </script>
@@ -182,12 +191,12 @@
   </div>
   <div>{指令.目前指令}</div>
   <div>
-    {指令.指令结果}
+    {@html 指令.指令结果}
   </div>
 {/each}
 <div>
   <input bind:value={目前指令} style="width:100%" />
-  {指令结果}
+  {@html 指令结果}
 </div>
 {#each 显示的指令历史 as i}
   <div>{JSON.stringify(i)}</div>

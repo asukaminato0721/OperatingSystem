@@ -10,10 +10,11 @@ online-demo
 
 ```bash
 cd 目录
-cd ..
-mkdir folder
+cd 任意个点
+mkdir folder1 folder2 ...
 cat file
 echo content > file
 echo content >> file
-touch file
+touch file1 file2 ...
+rm file1 file2 ...
 ```
