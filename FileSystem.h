@@ -1,12 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <string>
-#include <stdio.h>
-#include <stdlib.h>
-#include <conio.h>
-#include <string.h>
-#include <iostream>
-#include <vector>
+
 
 using namespace std;
 
@@ -51,29 +46,29 @@ enum class FileType :uint8_t
 {
 	File, Directory
 };
-//ï¿½ï¿½ï¿½ï¿½ï¿½é£¨ï¿½ï¿½Â¼ï¿½Ì¿ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½
+//³¬¼¶¿é£¨¼ÇÂ¼ÅÌ¿éÐÅÏ¢£©
 struct SuperBlock
 {
-	uint16_t FCS = 0;								//Ñ­ï¿½ï¿½Ð£ï¿½ï¿½ï¿½ï¿½
+	uint16_t FCS = 0;								//Ñ­»·Ð£ÑéÂë
 
-	uint32_t DiskSize;								//ï¿½ï¿½ï¿½Ì´ï¿½Ð¡
-	uint32_t BlockSize;								//ï¿½ï¿½ï¿½Ð¡
-	uint32_t BlockNum;								//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(=DISK_SIZE/ï¿½ï¿½ï¿½Ð¡)
-	BlockIndex FCBBitmapOffset;						//FCBï¿½ï¿½Î»Ê¾Í¼ï¿½Ð±ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½
-	BlockIndex DataBitmapOffset;					//Dataï¿½ï¿½Î»Ê¾Í¼ï¿½ï¿½ï¿½Ý¿é¿ªÊ¼ï¿½ï¿½ï¿½
-	BlockIndex FCBOffset;					     	//FCBï¿½Ð±ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½
-	BlockIndex DataOffset;							//Dataï¿½ï¿½ï¿½Ý¿é¿ªÊ¼ï¿½ï¿½ï¿½
-	uint32_t FCBNum, DataBlockNum;				    //FCBï¿½ï¿½ï¿½ï¿½ï¿½ï¿½DataBlockï¿½ï¿½ï¿½ï¿½
+	uint32_t DiskSize;								//´ÅÅÌ´óÐ¡
+	uint32_t BlockSize;								//¿é´óÐ¡
+	uint32_t BlockNum;								//¿éÊýÁ¿(=DISK_SIZE/¿é´óÐ¡)
+	BlockIndex FCBBitmapOffset;						//FCBµÄÎ»Ê¾Í¼ÁÐ±í¿ªÊ¼¿éºÅ
+	BlockIndex DataBitmapOffset;					//DataµÄÎ»Ê¾Í¼Êý¾Ý¿é¿ªÊ¼¿éºÅ
+	BlockIndex FCBOffset;					     	//FCBÁÐ±í¿ªÊ¼¿éºÅ
+	BlockIndex DataOffset;							//DataÊý¾Ý¿é¿ªÊ¼¿éºÅ
+	uint32_t FCBNum, DataBlockNum;				    //FCBÊýÁ¿ºÍDataBlockÊýÁ¿
 };
 
-//FCBï¿½ï¿½bitmap
+//FCBµÄbitmap
 extern BiSet* FCBBitMap;
-//Dataï¿½ï¿½ï¿½Ý¿ï¿½ï¿½bitmap
+//DataÊý¾Ý¿éµÄbitmap
 extern BiSet* DataBitMap;
 
 struct Block {
-	uint16_t FCS = 0;					//Ñ­ï¿½ï¿½Ð£ï¿½ï¿½ï¿½ï¿½
-	uint16_t Size = 0;					//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½ï¿½ï¿½ÝµÄ³ï¿½ï¿½ï¿½
+	uint16_t FCS = 0;					//Ñ­»·Ð£ÑéÂë
+	uint16_t Size = 0;					//¿éÄÚÓÐÐ§Êý¾ÝµÄ³¤¶È
 
 	//PointerBlock : BlockIndex[]
 	//Data		   : uint8_t[]
@@ -93,12 +88,11 @@ struct DirBlock :Block
 	FCBIndex data[];
 };
 
-//ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½Æ¶Î£ï¿½Ò»ï¿½ï¿½Blockï¿½ï¿½ï¿½ï¿½Ô´ï¿½Å¶ï¿½ï¿½FCBï¿½ï¿½
+//ÎÄ¼þ¿ØÖÆ¶Î£¨Ò»¸öBlockÀï¿ÉÒÔ´æ·Å¶à¸öFCB£©
 struct FileControlBlock {
 	FileControlBlock operator=(FileControlBlock& val);
 	FileControlBlock();
 	FileControlBlock(enum FileType t, const char* name, uint8_t AccessMode, FCBIndex parent);
-
 
 	char Name[32];
 	enum FileType Type;
@@ -124,7 +118,19 @@ void PrintDiskInfo();
 
 void FormatDisk(uint32_t blocksize = 1 << 10, uint32_t FCBBlockNum = 0);
 
+/// <summary>
+/// ÒÑ·ÏÆú£¡´´½¨ÐÂÄ¿Â¼
+/// </summary>
+/// <param name="name">Ä¿Â¼Ãû</param>
+/// <param name="parent">¸¸Ä¿Â¼µÄFCBºÅ</param>
+/// <returns>ÐÂ½¨Ä¿Â¼µÄFCBºÅ£¬Èô´´½¨Ê§°ÜÔò·µ»Ø-1</returns>
 FCBIndex CreateDirectory(string name, FCBIndex parent);
+/// <summary>
+/// ÒÑ·ÏÆú£¡ÐÂ½¨ÎÄ¼þ¼Ð
+/// </summary>
+/// <param name="name">ÎÄ¼þÃû</param>
+/// <param name="dir">¸¸Ä¿Â¼µÄFCBºÅ</param>
+/// <returns>ÐÂ½¨ÎÄ¼þµÄFCBºÅ£¬Èô´´½¨Ê§°ÜÔò·µ»Ø-1</returns>
 FCBIndex CreateFile(string name, FCBIndex dir);
 bool DeleteFile(FCBIndex file);
 void PrintDir(FCBIndex dir);
@@ -132,34 +138,36 @@ void PrintFileInfo(FCBIndex file);
 
 
 /// <summary>
-/// ï¿½ï¿½Ñ¯Ä³Ä¿Â¼ï¿½Âµï¿½ï¿½Ä¼ï¿½FCBï¿½ï¿½
+/// ²éÑ¯Ä³Ä¿Â¼ÏÂµÄÎÄ¼þFCBºÅ
 /// </summary>
-/// <param name="dir">ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Â¼</param>
-/// <param name="filename">ï¿½ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½Ä¼ï¿½ï¿½ï¿½</param>
-/// <returns>ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½FCBï¿½Å£ï¿½ï¿½ï¿½ï¿½Î´ï¿½éµ½ï¿½ï¿½dirï¿½ï¿½ï¿½ï¿½Ä¿Â¼ï¿½ï¿½ï¿½ò·µ»ï¿½-1</returns>
+/// <param name="dir">´ý²éÕÒÄ¿Â¼</param>
+/// <param name="filename">´ý²éÕÒµÄÎÄ¼þÃû</param>
+/// <returns>²éÕÒµ½µÄFCBºÅ£¬Èç¹ûÎ´²éµ½»òdir²»ÊÇÄ¿Â¼£¬Ôò·µ»Ø-1</returns>
 FCBIndex Find(FCBIndex dir, string filename);
 
+/// <summary>
+/// ¶ÁÈ¡ÎÄ¼þ
+/// </summary>
+/// <param name="file">ÎÄ¼þFCB±àºÅ</param>
+/// <param name="pos">¶ÁÈ¡ÆðÊ¼µã</param>
+/// <param name="buff">»º³åÇø</param>
+/// <param name="len">¶ÁÈ¡³¤¶È</param>
+/// <returns>·µ»Ø×îºó¶ÁÈ¡Î»ÖÃµÄÏÂÒ»Î»</returns>
+int64_t ReadFile(FCBIndex file, int64_t pos, int64_t len, uint8_t* buff);
 
 /// <summary>
-/// ï¿½ï¿½È¡ï¿½Ä¼ï¿½
+/// Ð´ÈëÎÄ¼þ
 /// </summary>
-/// <param name="file">ï¿½Ä¼ï¿½FCBï¿½ï¿½ï¿½</param>
-/// <param name="pos">ï¿½ï¿½È¡ï¿½ï¿½Ê¼ï¿½ï¿½</param>
-/// <param name="buff">ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½</param>
-/// <param name="len">ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½</param>
-/// <returns>ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡Î»ï¿½Ãµï¿½ï¿½ï¿½Ò»Î»</returns>
-uint64_t ReadFile(FCBIndex file, uint64_t pos, uint64_t len, uint8_t* buff);
-
-/// <summary>
-/// Ð´ï¿½ï¿½ï¿½Ä¼ï¿½
-/// </summary>
-/// <param name="file">ï¿½Ä¼ï¿½FCBï¿½ï¿½ï¿½</param>
-/// <param name="pos">Ð´ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½</param>
-/// <param name="buff">ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½</param>
-/// <param name="len">Ð´ï¿½ë³¤ï¿½ï¿½</param>
-/// <returns>ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½Î»ï¿½Ãµï¿½ï¿½ï¿½Ò»Î»</returns>
-uint64_t WriteFile(FCBIndex file, uint64_t pos, uint64_t len, uint8_t* buff);
-
-
+/// <param name="file">ÎÄ¼þFCB±àºÅ</param>
+/// <param name="pos">Ð´ÈëÆðÊ¼µã</param>
+/// <param name="buff">»º³åÇø</param>
+/// <param name="len">Ð´Èë³¤¶È</param>
+/// <returns>·µ»Ø×îºóÐ´ÈëÎ»ÖÃµÄÏÂÒ»Î»</returns>
+int64_t WriteFile(FCBIndex file, int64_t pos, int64_t len, uint8_t* buff);
 
 uint64_t FileInfo(FCBIndex file, FileControlBlock* fcb);
+
+void GetFCB(FCBIndex file, FileControlBlock* fcb);
+
+
+FCBIndex Create(string name, FCBIndex dir, enum FileType t);
