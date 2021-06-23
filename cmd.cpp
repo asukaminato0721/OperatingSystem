@@ -352,37 +352,41 @@ int readby(string path)
 
 void dir(string path)
 {
-	int temp_cur;
-	int i = 0;
-	if (path.length() == 0) { // 
-		temp_cur = inum_cur;
-	}
-	else {
-		if (path[path.length() - 1] != '/') path += '/';
-		temp_cur = readby(path);
-		if (temp_cur == -1) {
-			cout << "No Such Directory" << endl;
-			return;
-		}
-	}
-	if (temp_cur != -1 ){
+    int temp_cur;
+    int i = 0;
+    if (path.empty())
+    { //
+        temp_cur = inum_cur;
+    }
+    else
+    {
+        if (path.back() != '/')
+            path += '/';
+        temp_cur = readby(path);
+        if (temp_cur == -1)
+        {
+            cout << "No Such Directory" << endl;
+            return;
+        }
+    }
+    if (temp_cur != -1)
+    {
         vector<FCBIndex> indexs = GetChildren(temp_cur);
-		for (i = 0; i < INODENUM; i++)
-		{
-			if ((inode_array[i].inum > 0) &&
-				(inode_array[i].iparent == temp_cur)
-				&& !strcmp(inode_array[i].user_name, user.user_name))
-			{
-				if (inode_array[i].type == 'd')
-				{
-					printf("%-20s<DIR>\n", inode_array[i].file_name);
-				}
-				if (inode_array[i].type == '-')
-				{
-					printf("%-20s%12d bytes\n", inode_array[i].file_name, inode_array[i].length);
-				}
-			}
-		}
+        for (i = 0; i < INODENUM; i++)
+        {
+            if ((inode_array[i].inum > 0) &&
+                (inode_array[i].iparent == temp_cur) && !strcmp(inode_array[i].user_name, user.user_name))
+            {
+                if (inode_array[i].type == 'd')
+                {
+                    printf("%-20s<DIR>\n", inode_array[i].file_name);
+                }
+                if (inode_array[i].type == '-')
+                {
+                    printf("%-20s%12d bytes\n", inode_array[i].file_name, inode_array[i].length);
+                }
+            }
+        }
     }
 }
 
