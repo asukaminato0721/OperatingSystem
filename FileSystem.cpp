@@ -53,9 +53,9 @@ FileControlBlock::FileControlBlock(enum FileType t, const char* name, uint8_t Ac
 	this->Parent = parent;
 }
 
-
-
 SuperBlock Super;
+
+
 BiSet* FCBBitMap, * DataBitMap;
 bool isMounted = false;
 
@@ -630,7 +630,7 @@ FCBIndex Create(string name, FCBIndex dir, enum FileType t) {
 	FCBBitMap->set(fcbIndex, true);
 	StoreFCB(fcbIndex, &fcb);
 	//写入父目录(将fcbIndex写入父目录)
-	FileControlBlock dirFCB;
+	FileControlBlock dirFCB, NameCheck;
 	LoadFCB(dir, &dirFCB);
 	for (size_t i = 0; i < 10; i++)
 	{
@@ -641,7 +641,7 @@ FCBIndex Create(string name, FCBIndex dir, enum FileType t) {
 			dirFCB.DirectBlock[i] = newDirPage;
 			StoreBlock(newDirPage, BlockBuff);
 		}
-		else {//尝试加入现有目录页
+		else {//尝试加入现有目录页，顺便检查重名
 			LoadBlock(dirFCB.DirectBlock[i], BlockBuff);
 			for (FCBIndex* iter = (FCBIndex*)(BlockBuff + sizeof(Block)); iter < (FCBIndex*)(BlockBuff + Super.BlockSize); iter++)
 			{
@@ -650,6 +650,13 @@ FCBIndex Create(string name, FCBIndex dir, enum FileType t) {
 					BlockSize(BlockBuff) += sizeof(FCBIndex);
 					StoreBlock(dirFCB.DirectBlock[i], BlockBuff);
 					goto CreateFile_end;
+				}
+				else {
+					LoadFCB(*iter, &NameCheck);
+					if (strcmp(NameCheck.Name, name.c_str()) == 0) {
+						printf("Error:File name duplicate ,%s is already existed!\n", NameCheck.Name);
+						goto CreateFile_end;
+					}
 				}
 			}
 		}
@@ -671,8 +678,6 @@ FCBIndex CreateDirectory(string name, FCBIndex dir) {
 FCBIndex CreateFile(string name, FCBIndex dir) {
 	return Create(name, dir, FileType::File);
 }
-
-
 
 
 bool DeleteFile(FCBIndex file) {
