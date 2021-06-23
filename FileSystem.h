@@ -172,4 +172,6 @@ uint64_t FileInfo(FCBIndex file, FileControlBlock* fcb);
 void GetFCB(FCBIndex file, FileControlBlock* fcb);
 
 
+vector<FCBIndex> GetChildren(FCBIndex file);
+
 FCBIndex Create(string name, FCBIndex dir, enum FileType t);
