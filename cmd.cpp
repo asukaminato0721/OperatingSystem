@@ -23,7 +23,7 @@ super.DataBlockNum
 
 typedef FileControlBlock Inode; // fcb别名Inode
 
-// 用户(20B)
+// 用户(32B)
 typedef struct
 {
     char user_name[USERLEN]; // 用户名
@@ -94,8 +94,8 @@ void login()
             {
                 fclose(fp);
                 printf("\n");
-                CreateDirectory(user.user_name, 0);
-                Find(0, user.user_name);
+                CreateDirectory(user.user_name, 0);//在根目录下创建用户文件夹，仅供该用户使用
+                cd(user.user_name);//进入用户文件夹
                 return; //登陆成功，直接跳出登陆函数
             }
             // 已经存在的用户, 但密码错误
@@ -122,10 +122,12 @@ void login()
         // gets_s(temp);
         if ((choice == 'y') || (choice == 'Y'))
         {
-            strcpy(user.user_name, user_name);
+            strcpy(user.user_name, user_name);//将用户之前输入的用户名和密码注册新用户
             strcpy(user.password, password);
-            fwrite(&user, sizeof(User), 1, fp);
+            fwrite(&user, sizeof(User), 1, fp);//将新用户信息写入文件
             fclose(fp);
+            CreateDirectory(user.user_name, 0);//在根目录下创建用户文件夹，仅供该用户使用
+            cd(user.user_name);//进入用户文件夹
             return;
         }
         if ((choice == 'n') || (choice == 'N'))
@@ -156,14 +158,14 @@ void pathset()
         FileControlBlock *fcb;
         while (temp != 0)
         {
-            GetFCB(temp, &fcb);
+            GetFCB(temp, &fcb);//首次依据当前FCB号
             s = fcb->Name + s;
             s = '/' + s;
             temp = fcb->Parent;
         }
     }
     cout << user.user_name << "@"
-         << "4423"
+         << "8080"
          << ":~" << s << "# ";
 }
 
