@@ -541,6 +541,116 @@ void rm(void)
     }
 }
 
+// an exist file
+void cat() {
+	int i, inum;
+	string temps1, temps2; int temp_cur;
+	if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
+		temps1 = s2.substr(0, s2.find_last_of('/') + 1);
+		temps2 = s2.substr(s2.find_last_of('/') + 1);
+		string temps = s2;
+		s2 = temps1;
+		temp_cur = readby(temps1);
+		s2 = temps;
+	}
+	else {
+		temps2 = s2;
+		temp_cur = inum_cur;
+	}
+	FCBIndex file_cur = Find(temp_cur, s2);
+	FileControlBlock* fcb;
+	GetFCB(file_cur, &fcb);
+	uint8_t* buff;
+	int64_t res = ReadFile(file_cur, 0, fcb->Size, &buff);
+	if (res != -1) {
+		printf("%s\n", buff);
+	}
+	else {
+		printf("Read Fail!\n");
+	}
+
+}
+
+// open and write something to a particular file
+void vi() {
+	int i, inum;
+	string temps1, temps2; int temp_cur;
+	char temp[10 * BLKSIZE];
+	uint8_t* buff;
+	if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
+		temps1 = s2.substr(0, s2.find_last_of('/') + 1);
+		temps2 = s2.substr(s2.find_last_of('/') + 1);
+		string temps = s2;
+		s2 = temps1;
+		temp_cur = readby(temps1);
+		s2 = temps;
+	}
+	else {
+		temps2 = s2;
+		temp_cur = inum_cur;
+	}
+	FCBIndex file_cur = Find(temp_cur, s2);
+	FileControlBlock* fcb;
+	GetFCB(file_cur, &fcb);
+	if (fcb->Size == 0) {
+		printf('Please input: \n');
+		gets_s(temp);
+		int64_t res = WriteFile(file_cur, 0, strlen(temp), temp);
+	}
+	else {
+		char choice;
+		printf("This file already exist data! \n");
+		printf("Overwrite or append? input o/a:");
+		scanf("%c", &choice);
+		if (choice == 'o') {
+			printf("Please input: \n");
+			gets_s(temp);
+			int64_t res = WriteFile(file_cur, 0, strlen(temp), temp);
+		}
+		else if (choice == 'a') {
+			printf("Please input: \n");
+			gets_s(temp);
+			int64_t res = WriteFile(file_cur, fcb->Size + 1, strlen(temp), temp);
+		}
+		else {
+			printf("Exit write!\n")
+		}
+		if (res != -1) {
+			printf("Write file successfully!\n");
+		}
+		else {
+			printf("Failed to write!\n");
+		}
+	}
+}
+
+
+// 功能: 删除文件
+void rm(void)
+{
+	if (s2.length() == 0) {
+		printf("This file doesn't exist.\n");
+		return;
+	}
+	int i, temp_cur; string temps1, temps2;
+	if (s2.find('/') != -1) {
+		temps1 = s2.substr(0, s2.find_last_of('/') + 1);
+		temps2 = s2.substr(s2.find_last_of('/') + 1);
+		s2 = temps1;
+		temp_cur = readby(temps1);
+	}
+	else {
+		temps2 = s2;
+		temp_cur = inum_cur;
+	}
+	FCBIndex file_cur = Find(temp_cur, temps2);
+	bool suc = DeleteFile(file_cur);
+	if (suc) {
+		printf("Delete Successfully!\n");
+	}eles{
+		printf("Delete Failed!\n");
+	}
+}
 
 //cmd下的format函数，包括用户的的格式化
 void format() {
