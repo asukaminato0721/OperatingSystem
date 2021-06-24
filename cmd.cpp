@@ -13,7 +13,7 @@ using namespace std;
 #define INODESIZE 128 // （fcb）i节点的大小
 #define INODENUM Super.FCBNum   // i节点的数目
 #define FILENUM 8     // 打开文件表的数目
-#define USERLEN 16
+#define USERLEN 10
 
 /*
 super.BlockNum
@@ -94,7 +94,7 @@ void login()
             {
                 fclose(fp);
                 printf("\n");
-                CreateDirectory(user.user_name, 0);//在根目录下创建用户文件夹，仅供该用户使用
+                //CreateDirectory(user.user_name, 0);//在根目录下创建用户文件夹，仅供该用户使用，文件系统更改为存入硬盘，登录时无需重新创建
                 cd(user.user_name);//进入用户文件夹
                 return; //登陆成功，直接跳出登陆函数
             }
@@ -114,7 +114,7 @@ void login()
         }
     } while (flag);
 
-    // 创建新用户
+    // 创建新用户，当前用户名未注册
     if (flag == 0)
     {
         printf("\nDo you want to creat a new user?(y/n):");
@@ -125,7 +125,7 @@ void login()
             strcpy(user.user_name, user_name);//将用户之前输入的用户名和密码注册新用户
             strcpy(user.password, password);
             fwrite(&user, sizeof(User), 1, fp);//将新用户信息写入文件
-            fclose(fp);
+            fclose(fp);//关闭文件
             CreateDirectory(user.user_name, 0);//在根目录下创建用户文件夹，仅供该用户使用
             cd(user.user_name);//进入用户文件夹
             return;
@@ -133,6 +133,51 @@ void login()
         if ((choice == 'n') || (choice == 'N'))
             login();
     }
+}
+
+void su(string user_name) {//待修改
+    /*功能: 切换当前用户(logout)*/
+    char* p;
+    int flag;
+    //string user_name;
+    char password[USERLEN];
+    char file_name[10] = "user.txt";
+    fp = fopen(file_name, "r");           //初始化指针，将文件系统的指针指向文件系统的首端(以只读方式打开文件)
+    do {
+        //user_name = s2;
+        printf("password:");
+        p = password;
+        while (*p = _getch()) {
+            if (*p == 0x0d) { 		//当输入回车键时，0x0d为回车键的ASCII码
+                *p = '\0'; 			//将输入的回车键转换成空格
+                break;
+            }
+            printf("*");   //将输入的密码以"*"号显示
+            p++;
+        }
+        flag = 0;
+        while (!feof(fp)) {
+            fread(&user, sizeof(User), 1, fp);
+            // 已经存在的用户, 且密码正确
+            if ((user.user_name == user_name) &&
+                !strcmp(user.password, password)) {
+                fclose(fp);
+                printf("\n");
+                return;     //登陆成功，直接跳出登陆函数
+            }
+            // 已经存在的用户, 但密码错误
+            else if ((user.user_name == user_name)) {
+                printf("\nThis user is exist, but password is incorrect.\n");
+                flag = 1;    //设置flag为1，表示密码错误，重新登陆
+                fclose(fp);
+                break;
+            }
+        }
+        if (flag == 0) {
+            printf("\nThis user is not exist.\n");
+            break;     //用户不存在，直接跳出循环，进行下一条指令的输入
+        }
+    } while (flag);
 }
 
 //初始化
@@ -737,7 +782,7 @@ void command(void)
             rm();  // delete file
             break;
         case 10:
-            su();
+            su(s2);
             break;
         case 11:
             system("cls");
