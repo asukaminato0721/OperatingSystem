@@ -138,8 +138,8 @@ bool AppendNewBlock(FileControlBlock* fcb, FCBIndex fcbIndex, uint8_t* blockBuff
 		if (fcb->DirectBlock[i] == -1) {
 			BlockIndex blockIndex = getEmptyBlock();
 			DataBitMap->set(blockIndex, true);
-			StoreBlock(blockIndex, blockBuff);//Ð´ÈëÊý¾Ý¿é
-			fcb->DirectBlock[i] = blockIndex;//¸üÐÂFCB
+			StoreBlock(blockIndex, blockBuff);//Ð´ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
+			fcb->DirectBlock[i] = blockIndex;//ï¿½ï¿½ï¿½ï¿½FCB
 			goto AppendNewBlock_end;
 		}
 	}
@@ -150,9 +150,9 @@ bool AppendNewBlock(FileControlBlock* fcb, FCBIndex fcbIndex, uint8_t* blockBuff
 			if (*(BlockIndex*)(pointerBuff + pos) == -1) {
 				BlockIndex blockIndex = getEmptyBlock();
 				DataBitMap->set(blockIndex, true);
-				StoreBlock(blockIndex, blockBuff);//Ð´ÈëÊý¾Ý¿é
+				StoreBlock(blockIndex, blockBuff);//Ð´ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
 				*(BlockIndex*)(pointerBuff + pos) = blockIndex;
-				StoreBlock(fcb->Pointer, pointerBuff);//¸üÐÂpointer¿é
+				StoreBlock(fcb->Pointer, pointerBuff);//ï¿½ï¿½ï¿½ï¿½pointerï¿½ï¿½
 				free(pointerBuff);
 				goto AppendNewBlock_end;
 			}
@@ -161,7 +161,7 @@ bool AppendNewBlock(FileControlBlock* fcb, FCBIndex fcbIndex, uint8_t* blockBuff
 		return false;
 	}
 AppendNewBlock_end:
-	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//Ð´ÈëDataBlockµÄbitmap
+	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//Ð´ï¿½ï¿½DataBlockï¿½ï¿½bitmap
 	StoreFCB(fcbIndex, fcb);
 	return true;
 }
@@ -346,7 +346,7 @@ public:
 			}
 		}
 	}
-	//»ñÈ¡±¾ÎÄ¼þµÄµÚindex¸ö¿é
+	//ï¿½ï¿½È¡ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½Äµï¿½indexï¿½ï¿½ï¿½ï¿½
 	BlockIndex GetBlockIndex(uint32_t index) {
 		if (index < 10) {
 			return FCB.DirectBlock[index];
@@ -358,15 +358,15 @@ public:
 			return *((BlockIndex*)(Pointer + sizeof(Block)) + (index % 10));
 		}
 	}
-	//Ôö¼ÓÐÂµÄ¿é
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ÂµÄ¿ï¿½
 	BlockIndex AddNewBlock(uint8_t* blockBuff) {
 		BlockIndex blockIndex = -1;
 		for (int i = 0; i < 10; i++) {
 			if (FCB.DirectBlock[i] == -1) {
 				blockIndex = getEmptyBlock();
 				DataBitMap->set(blockIndex, true);
-				StoreBlock(blockIndex, blockBuff);//Ð´ÈëÊý¾Ý¿é
-				FCB.DirectBlock[i] = blockIndex;//¸üÐÂFCB
+				StoreBlock(blockIndex, blockBuff);//Ð´ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
+				FCB.DirectBlock[i] = blockIndex;//ï¿½ï¿½ï¿½ï¿½FCB
 				goto AppendNewBlock_end;
 			}
 		}
@@ -377,9 +377,9 @@ public:
 				if (*(BlockIndex*)(pointerBuff + pos) == -1) {
 					blockIndex = getEmptyBlock();
 					DataBitMap->set(blockIndex, true);
-					StoreBlock(blockIndex, blockBuff);//Ð´ÈëÊý¾Ý¿é
+					StoreBlock(blockIndex, blockBuff);//Ð´ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
 					*(BlockIndex*)(pointerBuff + pos) = blockIndex;
-					StoreBlock(FCB.Pointer, pointerBuff);//¸üÐÂpointer¿é
+					StoreBlock(FCB.Pointer, pointerBuff);//ï¿½ï¿½ï¿½ï¿½pointerï¿½ï¿½
 					free(pointerBuff);
 					goto AppendNewBlock_end;
 				}
@@ -388,11 +388,11 @@ public:
 			return blockIndex;
 		}
 	AppendNewBlock_end:
-		WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//Ð´ÈëDataBlockµÄbitmap
+		WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//Ð´ï¿½ï¿½DataBlockï¿½ï¿½bitmap
 		StoreFCB(Self_Index, &FCB);
 		return true;
 	}
-	//½«µÚindexÒ³¶ÁÈëÄÚ´æ
+	//ï¿½ï¿½ï¿½ï¿½indexÒ³ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½
 	BlockIndex ReadPage(uint32_t index, uint8_t* blockBuff) {
 		if (index < 10) {
 			if (FCB.DirectBlock[index] != -1) {
@@ -427,7 +427,7 @@ void LoadDisk() {}
 void FormatDisk(uint32_t blocksize, uint32_t FCBBlockNum) {
 	auto size = getDiskSize();
 
-	//¹¹½¨Super¿é
+	//ï¿½ï¿½ï¿½ï¿½Superï¿½ï¿½
 	Super.DiskSize = size;
 	Super.BlockSize = blocksize;
 	Super.BlockNum = Super.DiskSize / Super.BlockSize;
@@ -438,46 +438,46 @@ void FormatDisk(uint32_t blocksize, uint32_t FCBBlockNum) {
 	Super.FCBNum = FCBBlockNum * blocksize / FILE_CONTROL_BLOCK_SIZE;
 
 
-	uint32_t FCBBitmapBlock = (uint32_t)ceil(Super.FCBNum / (8.0 * blocksize));						//FCBÎ»Ê¾Í¼ËùÕ¼BlcokÊý
-	uint32_t RemainBlock = Super.BlockNum - 1 - FCBBitmapBlock - FCBBlockNum;						//Ê£ÓàµÄblockÊý = ×ÜblockÊý - super - FCBÎ»Ê¾Í¼ - [DataÎ»Ê¾Í¼] - FCBBlockNum - [Data]
-	uint32_t DataBitmapBlock = (uint32_t)ceil(RemainBlock * 1.0 / (1 + 8 * blocksize));				//Î»Ê¾Í¼Õ¼x¸öblock£¬dataÇøÓÐ`blocksize`*8*x¸öDataBlock¡£ËùÒÔx=Remian/(1+8*blocksize)
+	uint32_t FCBBitmapBlock = (uint32_t)ceil(Super.FCBNum / (8.0 * blocksize));						//FCBÎ»Ê¾Í¼ï¿½ï¿½Õ¼Blcokï¿½ï¿½
+	uint32_t RemainBlock = Super.BlockNum - 1 - FCBBitmapBlock - FCBBlockNum;						//Ê£ï¿½ï¿½ï¿½blockï¿½ï¿½ = ï¿½ï¿½blockï¿½ï¿½ - super - FCBÎ»Ê¾Í¼ - [DataÎ»Ê¾Í¼] - FCBBlockNum - [Data]
+	uint32_t DataBitmapBlock = (uint32_t)ceil(RemainBlock * 1.0 / (1 + 8 * blocksize));				//Î»Ê¾Í¼Õ¼xï¿½ï¿½blockï¿½ï¿½dataï¿½ï¿½ï¿½ï¿½`blocksize`*8*xï¿½ï¿½DataBlockï¿½ï¿½ï¿½ï¿½ï¿½ï¿½x=Remian/(1+8*blocksize)
 	Super.DataBlockNum = RemainBlock - DataBitmapBlock;
 	Super.FCBBitmapOffset = 1;
 	Super.DataBitmapOffset = 1 + FCBBitmapBlock;
 	Super.FCBOffset = Super.DataBitmapOffset + DataBitmapBlock;
 	Super.DataOffset = Super.FCBOffset + FCBBlockNum;
-	WriteDisk((uint8_t*)&Super, 0, sizeof(Super));															//Ð´ÈëSuperBlock
+	WriteDisk((uint8_t*)&Super, 0, sizeof(Super));															//Ð´ï¿½ï¿½SuperBlock
 
-	FCBBitMap = new BiSet(Super.FCBNum);																	//³õÊ¼»¯FCBµÄbitmap
-	DataBitMap = new BiSet(Super.DataBlockNum);																//³õÊ¼»¯DataµÄbitmap
+	FCBBitMap = new BiSet(Super.FCBNum);																	//ï¿½ï¿½Ê¼ï¿½ï¿½FCBï¿½ï¿½bitmap
+	DataBitMap = new BiSet(Super.DataBlockNum);																//ï¿½ï¿½Ê¼ï¿½ï¿½Dataï¿½ï¿½bitmap
 
 	isMounted = true;
 
 
-	//¿ÕÄ¿Â¼²»ÐèÒªÊý¾Ý¿é
-	////¹¹½¨¸ùÄ¿Â¼Êý¾Ý¿é
+	//ï¿½ï¿½Ä¿Â¼ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Ý¿ï¿½
+	////ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Â¼ï¿½ï¿½ï¿½Ý¿ï¿½
 	//uint8_t* DirDataBlock = (uint8_t*)malloc(Super.BlockSize);
 	//MakeDirBlock(0, DirDataBlock);
 	//BlockIndex StorgeLocation = getEmptyBlock();
-	//DataBitMap->set(StorgeLocation, true);																	//ÉèÖÃFCBµÄbitmap
-	//StoreBlock(StorgeLocation, DirDataBlock);																//Ð´ÈëDirectoryBlock
+	//DataBitMap->set(StorgeLocation, true);																	//ï¿½ï¿½ï¿½ï¿½FCBï¿½ï¿½bitmap
+	//StoreBlock(StorgeLocation, DirDataBlock);																//Ð´ï¿½ï¿½DirectoryBlock
 	//free(DirDataBlock);
 
-	//¹¹½¨¸ùÄ¿Â¼FCB
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Â¼FCB
 	FileControlBlock root(FileType::Directory, "Root", (uint8_t)Access::None, 0);
 	strcpy(root.Name, "Root");
 	root.AccessMode = (uint8_t)Access::None;
 	time(&root.CreateTime);
 
 	root.Size = 0;
-	//¿ÕÄ¿Â¼ÔÝÎÞÊý¾Ý¿é
-	//root.DirectBlock[0] = StorgeLocation;																	//ÉèÖÃ´æ´¢¿éºÅ
-	FCBBitMap->set(0, true);																				//ÉèÖÃDataBlockµÄbitmap
+	//ï¿½ï¿½Ä¿Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
+	//root.DirectBlock[0] = StorgeLocation;																	//ï¿½ï¿½ï¿½Ã´æ´¢ï¿½ï¿½ï¿½
+	FCBBitMap->set(0, true);																				//ï¿½ï¿½ï¿½ï¿½DataBlockï¿½ï¿½bitmap
 	//WriteDisk((uint8_t*)&root, Super.BlockSize * (Super.FCBOffset + 0), sizeof(root));						
-	StoreFCB(0, &root);																						//rootµÄFCB.id = 0
+	StoreFCB(0, &root);																						//rootï¿½ï¿½FCB.id = 0
 
-	WriteDisk(FCBBitMap->data, Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);				//Ð´ÈëFCBµÄbitmap
-	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//Ð´ÈëDataBlockµÄbitmap
+	WriteDisk(FCBBitMap->data, Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);				//Ð´ï¿½ï¿½FCBï¿½ï¿½bitmap
+	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//Ð´ï¿½ï¿½DataBlockï¿½ï¿½bitmap
 }
 
 void Login(string userName, string password) {
@@ -537,7 +537,6 @@ void PrintDir(FCBIndex dir) {
 	uint8_t* buff = (uint8_t*)malloc(Super.BlockSize);
 	BlockIndex block = 0;
 	printf("================================================\n");
-	printf("%12s | %12s | %6s | % 10s\n", "Name", "Size", "FCB", "Physical Address");
 	FileControlBlock fcb;
 	while (reader.ReadNextBlock(buff, &block) == true)
 	{
@@ -620,28 +619,28 @@ FCBIndex Create(string name, FCBIndex dir, enum FileType t) {
 		return -1;
 	}
 	uint8_t* BlockBuff = (uint8_t*)malloc(Super.BlockSize);
-	//¹¹½¨Data¿é!¿ÕÎÄ¼þ²»¹¹½¨Data¿é
+	//ï¿½ï¿½ï¿½ï¿½Dataï¿½ï¿½!ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Dataï¿½ï¿½
 
 
-	//¹¹½¨FCB¿é
+	//ï¿½ï¿½ï¿½ï¿½FCBï¿½ï¿½
 	FileControlBlock fcb(t, name.c_str(), (uint8_t)Access::Read | (uint8_t)Access::Write | (uint8_t)Access::Delete, dir);
 	//FCB.DirectBlock[0] = blockIndex;
 	FCBIndex fcbIndex = getEmptyFCB();
 	FCBBitMap->set(fcbIndex, true);
 	StoreFCB(fcbIndex, &fcb);
-	//Ð´Èë¸¸Ä¿Â¼(½«fcbIndexÐ´Èë¸¸Ä¿Â¼)
+	//Ð´ï¿½ë¸¸Ä¿Â¼(ï¿½ï¿½fcbIndexÐ´ï¿½ë¸¸Ä¿Â¼)
 	FileControlBlock dirFCB, NameCheck;
 	LoadFCB(dir, &dirFCB);
 	for (size_t i = 0; i < 10; i++)
 	{
-		if (dirFCB.DirectBlock[i] == -1) {//´æÈëÐÂµÄÄ¿Â¼Ò³
+		if (dirFCB.DirectBlock[i] == -1) {//ï¿½ï¿½ï¿½ï¿½ï¿½Âµï¿½Ä¿Â¼Ò³
 			MakeDirBlock(fcbIndex, BlockBuff);
 			BlockIndex newDirPage = getEmptyBlock();
 			DataBitMap->set(newDirPage, true);
 			dirFCB.DirectBlock[i] = newDirPage;
 			StoreBlock(newDirPage, BlockBuff);
 		}
-		else {//³¢ÊÔ¼ÓÈëÏÖÓÐÄ¿Â¼Ò³£¬Ë³±ã¼ì²éÖØÃû
+		else {//ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Â¼Ò³ï¿½ï¿½Ë³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			LoadBlock(dirFCB.DirectBlock[i], BlockBuff);
 			for (FCBIndex* iter = (FCBIndex*)(BlockBuff + sizeof(Block)); iter < (FCBIndex*)(BlockBuff + Super.BlockSize); iter++)
 			{
@@ -664,8 +663,8 @@ FCBIndex Create(string name, FCBIndex dir, enum FileType t) {
 
 CreateFile_end:
 	StoreFCB(dir, &dirFCB);
-	WriteDisk(FCBBitMap->data, Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);				//Ð´ÈëFCBµÄbitmap
-	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//Ð´ÈëDataBlockµÄbitmap
+	WriteDisk(FCBBitMap->data, Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);				//Ð´ï¿½ï¿½FCBï¿½ï¿½bitmap
+	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//Ð´ï¿½ï¿½DataBlockï¿½ï¿½bitmap
 	free(BlockBuff);
 	return fcbIndex;
 }
@@ -700,12 +699,12 @@ bool DeleteFile(FCBIndex file) {
 				}
 			}
 		}
-		//É¾³ýÎÄ¼þÊý¾Ý¿é
+		//É¾ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
 		for (size_t i = 0; i < blocks.size(); i++)
 		{
 			DataBitMap->set(blocks[i], false);
 		}
-		//É¾³ýFCB
+		//É¾ï¿½ï¿½FCB
 		FCBBitMap->set(file, false);
 	}
 	else if (thisFile.Type == FileType::Directory) {
@@ -720,7 +719,7 @@ bool DeleteFile(FCBIndex file) {
 			}
 		}
 	}
-	//É¾³ý¸¸Ä¿Â¼µÄ¼ÇÂ¼
+	//É¾ï¿½ï¿½ï¿½ï¿½Ä¿Â¼ï¿½Ä¼ï¿½Â¼
 	FCBIndex parentIndex = thisFile.Parent;
 	FileControlBlock parentFCB;
 	LoadFCB(parentIndex, &parentFCB);
@@ -731,16 +730,16 @@ bool DeleteFile(FCBIndex file) {
 			if (*(FCBIndex*)(blockBuff + pos) == file) {
 				*(FCBIndex*)(blockBuff + pos) = -1;
 				StoreBlock(parentFCB.DirectBlock[i], blockBuff);
-				//TEST £º Èç¹û¸ÃÄ¿Â¼¿éÎª¿Õ£¬ÔòÉ¾³ý´ËÄ¿Â¼¿é
+				//TEST ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Â¼ï¿½ï¿½Îªï¿½Õ£ï¿½ï¿½ï¿½É¾ï¿½ï¿½ï¿½ï¿½Ä¿Â¼ï¿½ï¿½
 				for (uint64_t pos2 = sizeof(Block); pos2 < Super.BlockSize; pos2 += sizeof(FCBIndex)) {
 					if (*(FCBIndex*)(blockBuff + pos2) != -1) {
 						goto DeleteFile_end;
 					}
 				}
-				//É¾³ý¿ÕµÄÄ¿Â¼±í
+				//É¾ï¿½ï¿½ï¿½Õµï¿½Ä¿Â¼ï¿½ï¿½
 				DataBitMap->set(parentFCB.DirectBlock[i], false);
 				parentFCB.DirectBlock[i] = -1;
-				//DirectBlock½ô´Õ»¯
+				//DirectBlockï¿½ï¿½ï¿½Õ»ï¿½
 				for (int j = i + 1; j < 10; j++)
 				{
 					parentFCB.DirectBlock[j - 1] = parentFCB.DirectBlock[j];
@@ -753,8 +752,8 @@ bool DeleteFile(FCBIndex file) {
 
 
 DeleteFile_end:
-	WriteDisk(FCBBitMap->data, Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);				//Ð´ÈëFCBµÄbitmap
-	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//Ð´ÈëDataBlockµÄbitmap
+	WriteDisk(FCBBitMap->data, Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);				//Ð´ï¿½ï¿½FCBï¿½ï¿½bitmap
+	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//Ð´ï¿½ï¿½DataBlockï¿½ï¿½bitmap
 
 	free(blockBuff);
 	return false;
@@ -788,43 +787,43 @@ int64_t WriteFile(FCBIndex file, int64_t pos, int64_t len, uint8_t* buff)
 	for (size_t PageNum = 0; PageNum < MAX_POINTER; PageNum++)
 	{
 		BlockIndex block = PointerBlock.ReadPage(PageNum, blockBuff);
-		if (block == -1) {//Ð´ÈëÆðµãÊÇÐÂµÄ¿é
+		if (block == -1) {//Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÂµÄ¿ï¿½
 			goto WriteFile_CreateNew;
 		}
-		else if (inBlockPos < MAX_BLOCK_SPACE) {//Ð´ÈëÆðµãÊÇµ±Ç°¿é
-			if (inBlockPos + len <= MAX_BLOCK_SPACE) {//ÔÚ¿ÕÏ¶ÖÐ´æÏÂ
+		else if (inBlockPos < MAX_BLOCK_SPACE) {//Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Çµï¿½Ç°ï¿½ï¿½
+			if (inBlockPos + len <= MAX_BLOCK_SPACE) {//ï¿½Ú¿ï¿½Ï¶ï¿½Ð´ï¿½ï¿½ï¿½
 				memcpy(blockBuff + inBlockPos, buff, len);
 				BlockSize(blockBuff) = MAX(BlockSize(blockBuff), inBlockPos + len);
 				StoreBlock(block, blockBuff);
 				goto WriteFile_end;
 			}
-			else {//´æ²»ÏÂ->ÌîÂú¿ÕÏ¶
+			else {//ï¿½æ²»ï¿½ï¿½->ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¶
 				memcpy(blockBuff + inBlockPos, buff, MAX_BLOCK_SPACE - inBlockPos);
 				BlockSize(blockBuff) = MAX_BLOCK_SPACE;
 				StoreBlock(block, blockBuff);
-				StartPos += MAX_BLOCK_SPACE - inBlockPos;//Ð´ÁËMAX_BLOCK_SPACE - inBlockPos¸ö×Ö½Ú
+				StartPos += MAX_BLOCK_SPACE - inBlockPos;//Ð´ï¿½ï¿½MAX_BLOCK_SPACE - inBlockPosï¿½ï¿½ï¿½Ö½ï¿½
 				goto WriteFile_CreateNew;
 			}
 
 		}
-		else {//Ð´ÈëÆðµã»¹ÔÚºóÃæ
+		else {//Ð´ï¿½ï¿½ï¿½ï¿½ã»¹ï¿½Úºï¿½ï¿½ï¿½
 			inBlockPos -= BlockSize(blockBuff);
 		}
 	}
 
 WriteFile_CreateNew:
-	//½«buff´ÓStartPos ~ lenÖ®¼äµÄ²¿·ÖÐ´ÈëÐÂ¿é
+	//ï¿½ï¿½buffï¿½ï¿½StartPos ~ lenÖ®ï¿½ï¿½Ä²ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Â¿ï¿½
 
 	while (StartPos < len)
 	{
-		if (len - StartPos >= MAX_BLOCK_SPACE) {//Ð´Âú±¾¿é
+		if (len - StartPos >= MAX_BLOCK_SPACE) {//Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			//pointerBlock.FCB.Size += MAX_BLOCK_SPACE;
 			BlockSize(blockBuff) = MAX_BLOCK_SPACE;
 			memcpy(blockBuff + sizeof(Block), buff + StartPos, MAX_BLOCK_SPACE);
 			PointerBlock.AddNewBlock(blockBuff);
 			StartPos += MAX_BLOCK_SPACE;
 		}
-		else {//»¹Ê£¿Õ¼ä
+		else {//ï¿½ï¿½Ê£ï¿½Õ¼ï¿½
 			//pointerBlock.FCB.Size += (len - StartPos);
 			BlockSize(blockBuff) = len;
 			memcpy(blockBuff + sizeof(Block), buff + StartPos, len - StartPos);
@@ -866,25 +865,25 @@ int64_t ReadFile(FCBIndex file, int64_t pos, int64_t len, uint8_t* buff)
 	{
 		BlockIndex block = pointerBlock.ReadPage(PageNum, blockBuff);
 
-		if (inBlockPos < MAX_BLOCK_SPACE) {//´Ó´Ë¿é¿ªÊ¼¶Á
+		if (inBlockPos < MAX_BLOCK_SPACE) {//ï¿½Ó´Ë¿é¿ªÊ¼ï¿½ï¿½
 			goto ReadFile_StartToRead;
 		}
-		else {//¶ÁÈ¡Æðµã»¹ÔÚºóÃæ
+		else {//ï¿½ï¿½È¡ï¿½ï¿½ã»¹ï¿½Úºï¿½ï¿½ï¿½
 			inBlockPos -= BlockSize(blockBuff);
 		}
 	}
 
 ReadFile_StartToRead:
-	//´ÓÎÄ¼þµÄµÚPageNum¿éinBlockOffset×Ö½Ú¿ªÊ¼£¬¶ÁÈ¡BytesToBeRead×Ö½ÚµÄÊý¾Ý
+	//ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½Äµï¿½PageNumï¿½ï¿½inBlockOffsetï¿½Ö½Ú¿ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½È¡BytesToBeReadï¿½Ö½Úµï¿½ï¿½ï¿½ï¿½ï¿½
 
 	for (; BytesToBeRead > 0; ++PageNum)
 	{
 		BlockIndex block = pointerBlock.ReadPage(PageNum, blockBuff);
-		if (BytesToBeRead >= BlockSize(blockBuff)) {//¶ÁÍêÕû¿é
+		if (BytesToBeRead >= BlockSize(blockBuff)) {//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			memcpy(buff + (len - BytesToBeRead), blockBuff + sizeof(Block), BlockSize(blockBuff));
 			BytesToBeRead -= BlockSize(blockBuff);
 		}
-		else {//¶ÁÈ¡Ò»²¿·Ö
+		else {//ï¿½ï¿½È¡Ò»ï¿½ï¿½ï¿½ï¿½
 			memcpy(buff + (len - BytesToBeRead), blockBuff + sizeof(Block), BytesToBeRead);
 			BytesToBeRead -= BytesToBeRead;
 		}

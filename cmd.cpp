@@ -153,7 +153,7 @@ void pathset()
         FileControlBlock *fcb;
         while (temp != 0)
         {
-            Getfcb(temp, fcb);
+            GetFCB(temp, &fcb);
             s = fcb->Name + s;
             s = '/' + s;
             temp = fcb->Parent;
@@ -350,11 +350,11 @@ int readby(string path)
     return result_cur;
 }
 
-void dir(string path)
+void ls(string path)   // path为空则列出当前文件夹下的全部子文件，不为空则列出path路径下的子文件
 {
     int temp_cur;
     int i = 0;
-    if (path.empty())
+    if (path.empty())  // path为空，当前文件夹下的子文件
     { //
         temp_cur = inum_cur;
     }
@@ -371,21 +371,11 @@ void dir(string path)
     }
     if (temp_cur != -1)
     {
-        vector<FCBIndex> indexs = GetChildren(temp_cur);
-        for (i = 0; i < INODENUM; i++)
+        vector<FCBIndex> v = GetChildren(temp_cur);
+	    printf("%12s | %12s | %6s | % 10s\n", "Name", "Size", "FCB", "Physical Address");
+        for (unsigned int count = 0; count < v.size(); count++)
         {
-            if ((inode_array[i].inum > 0) &&
-                (inode_array[i].iparent == temp_cur) && !strcmp(inode_array[i].user_name, user.user_name))
-            {
-                if (inode_array[i].type == 'd')
-                {
-                    printf("%-20s<DIR>\n", inode_array[i].file_name);
-                }
-                if (inode_array[i].type == '-')
-                {
-                    printf("%-20s%12d bytes\n", inode_array[i].file_name, inode_array[i].length);
-                }
-            }
+            PrintDir(v[count]);
         }
     }
 }
@@ -481,7 +471,7 @@ void command(void)
             printf("\n");
             break;
         case 0:
-            help();
+            help();  
             break;
         case 1:
             cd(s2);
