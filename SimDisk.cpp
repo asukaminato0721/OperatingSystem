@@ -10,6 +10,12 @@ using namespace std;
 #define TestSize 3000
 
 int main() {
+
+	initDisk();
+	LoadDisk();
+	PrintDir(0);
+	return 0;
+
 	uint8_t testBuff[TestSize];
 	uint8_t testBuff2[TestSize];
 	ifstream fs("C:\\Users\\Azura\\Desktop\\VNS\\VNS - PURE.cpp");
@@ -17,7 +23,6 @@ int main() {
 	fs.read((char*)testBuff, TestSize);
 
 
-	initDisk();
 	FormatDisk(1024);
 	auto dir1 = CreateDirectory("Dir1", 0);
 	auto dir2 = Create("Dir2", 0, FileType::Directory);

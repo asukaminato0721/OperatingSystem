@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "FileSystem.h"
 #include "Driver.h"
+#include "Crypto.h"
 using namespace std;
 
 uint8_t Access::None = 0;
@@ -48,7 +49,7 @@ FileControlBlock::FileControlBlock(enum FileType t, const char* name, uint8_t Ac
 	this->Parent = parent;
 }
 
-BlockIndex getEmptyBlock() {
+static BlockIndex getEmptyBlock() {
 	for (size_t i = 0; i < DataBitMap->SizeOfByte; ++i) {
 		if (DataBitMap->data[i] != 0xFF) {
 			for (int j = 0; j < 8; ++j) {
@@ -61,7 +62,7 @@ BlockIndex getEmptyBlock() {
 	printf("Disk Full!\n");
 	return -1;
 }
-FCBIndex getEmptyFCB() {
+static FCBIndex getEmptyFCB() {
 
 	for (size_t i = 0; i < FCBBitMap->SizeOfByte; ++i) {
 		if (FCBBitMap->data[i] != 0xFF) {
@@ -77,26 +78,36 @@ FCBIndex getEmptyFCB() {
 
 }
 
-void LoadFCB(FCBIndex index, FileControlBlock* buff) {
+
+static inline uint16_t& BlockSize(uint8_t* blockBuff) { return ((Block*)blockBuff)->Size; }
+static inline uint16_t& BlockFCS(uint8_t* blockBuff) { return ((Block*)blockBuff)->FCS; }
+static void LoadFCB(FCBIndex index, FileControlBlock* buff) {
 	ReadDisk((uint8_t*)buff, Super.FCBOffset * Super.BlockSize + index * FILE_CONTROL_BLOCK_SIZE, sizeof(FileControlBlock));
 	buff->ReadTime = time(NULL);
 	return;
 }
-void StoreFCB(FCBIndex index, FileControlBlock* buff) {
+static void StoreFCB(FCBIndex index, FileControlBlock* buff) {
 	WriteDisk((uint8_t*)buff, Super.FCBOffset * Super.BlockSize + index * FILE_CONTROL_BLOCK_SIZE, sizeof(FileControlBlock));
 	return;
 }
-void LoadBlock(BlockIndex index, uint8_t* buff) { ReadDisk(buff, (index + Super.DataOffset) * Super.BlockSize, Super.BlockSize); }
-void StoreBlock(BlockIndex index, uint8_t* buff) { WriteDisk(buff, (index + Super.DataOffset) * Super.BlockSize, Super.BlockSize); }
-void MakeDirBlock(FCBIndex firstIndex, uint8_t* buff) {
+static void LoadBlock(BlockIndex index, uint8_t* buff) {
+	ReadDisk(buff, (index + Super.DataOffset) * Super.BlockSize, Super.BlockSize);
+	if (Chk_XOR_ErrorDetection(buff + sizeof(Block), MAX_BLOCK_SPACE, BlockFCS(buff)) == false) {
+		printf("Error:Error detection find a error.\n");
+	}
+}
+static void StoreBlock(BlockIndex index, uint8_t* buff) {
+	BlockFCS(buff) = Cal_XOR_ErrorDetection(buff + sizeof(Block), MAX_BLOCK_SPACE);
+	WriteDisk(buff, (index + Super.DataOffset) * Super.BlockSize, Super.BlockSize);
+}
+static void MakeDirBlock(FCBIndex firstIndex, uint8_t* buff) {
 	((Block*)buff)->Size = sizeof(FCBIndex);
 	*(FCBIndex*)(buff + sizeof(Block)) = firstIndex;
 	for (size_t i = sizeof(Block) + sizeof(FCBIndex); i < Super.BlockSize; i += sizeof(FCBIndex)) {
 		*(FCBIndex*)(buff + i) = -1;
 	}
 }
-inline uint16_t& BlockSize(uint8_t* blockBuff) { return ((Block*)blockBuff)->Size; }
-inline uint16_t& BlockFCS(uint8_t* blockBuff) { return ((Block*)blockBuff)->FCS; }
+
 
 //Tool Class
 class FilePointerReader {
@@ -206,7 +217,6 @@ bool LoadDisk() {
 		printf("Error:Disk Read Failed! Format the disk first\n");
 		return false;
 	}
-
 }
 
 void FormatDisk(uint32_t blocksize, uint32_t FCBBlockNum) {
@@ -231,7 +241,10 @@ void FormatDisk(uint32_t blocksize, uint32_t FCBBlockNum) {
 	Super.DataBitmapOffset = 1 + FCBBitmapBlock;
 	Super.FCBOffset = Super.DataBitmapOffset + DataBitmapBlock;
 	Super.DataOffset = Super.FCBOffset + FCBBlockNum;
-	WriteDisk((uint8_t*)&Super, 0, sizeof(Super)); //写入SuperBlock
+	uint8_t* blockBuff = (uint8_t*)calloc(Super.BlockSize, sizeof(uint8_t));
+	memcpy(blockBuff, &Super, sizeof(Super));
+	StoreBlock(0, blockBuff);//写入SuperBlock
+	free(blockBuff);
 
 	FCBBitMap = new BiSet(Super.FCBNum);        //初始化FCB的bitmap
 	DataBitMap = new BiSet(Super.DataBlockNum); //初始化Data的bitmap

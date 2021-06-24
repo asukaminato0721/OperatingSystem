@@ -95,10 +95,10 @@ struct FileControlBlock {
 	uint8_t __padding[6];
 };
 
-// FCB的bitmap
-extern BiSet* FCBBitMap;
-// Data数据块的bitmap
-extern BiSet* DataBitMap;
+//// FCB的bitmap
+//extern BiSet* FCBBitMap;
+//// Data数据块的bitmap
+//extern BiSet* DataBitMap;
 //超级块信息
 extern SuperBlock Super;
 
