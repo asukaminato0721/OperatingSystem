@@ -280,7 +280,8 @@ void cd(string path)
     int temp_cur;
     if (path.empty())
     {
-        temp_cur = 0;
+        printf('command error!\n');
+        return;
     }
     else
     {
@@ -337,6 +338,10 @@ int readby(string path)
         }
         */
         temp_cur = Find(inum_cur, v[0]); // 返回上一级目录的目录号
+        if(temp_cur==0){
+            printf('cd failed!');
+            temp_cur=  inum_cur;
+        }
     }
     else
     {
@@ -455,6 +460,7 @@ void cat() {
     
 }
 
+// open and write something to a particular file
 void vi() {
 	int i, inum;
 	string temps1, temps2; int temp_cur;
@@ -503,6 +509,35 @@ void vi() {
         }
     }
 }
+
+
+// 功能: 删除文件
+void rm(void)
+{
+	if (s2.length() == 0) {
+		printf("This file doesn't exist.\n");
+		return;
+	}
+	int i, temp_cur; string temps1, temps2;
+	if (s2.find('/') != -1) {
+		temps1 = s2.substr(0, s2.find_last_of('/') + 1);
+		temps2 = s2.substr(s2.find_last_of('/') + 1);
+		s2 = temps1;
+		temp_cur = readby(temps1);
+	}
+	else {
+		temps2 = s2;
+		temp_cur = inum_cur;
+	}
+    FCBIndex file_cur = Find(temp_cur,temps2);
+	bool suc = DeleteFile(file_cur);
+    if(suc){
+        printf("Delete Successfully!\n");
+    }eles{
+        printf("Delete Failed!\n");
+    }
+}
+
 
 //cmd下的format函数，包括用户的的格式化
 void format() {
@@ -569,7 +604,7 @@ void command(void)
             // close();
             break;
         case 9:
-            rm();
+            rm();  // delete file
             break;
         case 10:
             su();
