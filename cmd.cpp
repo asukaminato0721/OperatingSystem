@@ -9,9 +9,9 @@ using namespace std;
 #include <vector>
 
 #define BLKSIZE Super.BlockSize  // 数据块的大小
-#define BLKNUM 512    // 数据块的块数
+#define BLKNUM Super.BlockNum    // 数据块的块数
 #define INODESIZE 128 // （fcb）i节点的大小
-#define INODENUM 32   // i节点的数目
+#define INODENUM Super.FCBNum   // i节点的数目
 #define FILENUM 8     // 打开文件表的数目
 
 /*
@@ -445,6 +445,18 @@ void touch(void)
 	save_inode(i);  // 保存
 }
 
+//cmd下的format函数，包括用户的的格式化
+void format() {
+    printf("Are you sure format the fileSystem?(Y/N)?");
+    scanf("%c", &choice);
+    if ((choice == 'y') || (choice == 'Y')) {
+        //格式化磁盘
+        FormatDisk();
+        //清除用户
+
+    }
+
+}
 
 void info()
 {
