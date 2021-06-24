@@ -79,7 +79,6 @@ struct Block {
 
 //文件控制段（一个Block里可以存放多个FCB）
 struct FileControlBlock {
-	FileControlBlock operator=(FileControlBlock& val);
 	FileControlBlock();
 	FileControlBlock(enum FileType t, const char* name, uint8_t AccessMode, FCBIndex parent);
 
@@ -102,8 +101,6 @@ struct FileControlBlock {
 //超级块信息
 extern SuperBlock Super;
 
-void Login(string userName, string password);
-
 
 bool LoadDisk();
 void FormatDisk(uint32_t blocksize = 1 << 10, uint32_t FCBBlockNum = 0);
@@ -111,21 +108,19 @@ void PrintDiskInfo();
 
 
 FCBIndex CreateDirectory(string name, FCBIndex parent);
-
 FCBIndex CreateFile(string name, FCBIndex dir);
-bool DeleteFile(FCBIndex file);
+
+
 void PrintDir(FCBIndex dir);
 void PrintInfo(FCBIndex file);
 
 
-FCBIndex Find(FCBIndex dir, string filename);
-
 FCBIndex Create(string name, FCBIndex dir, enum FileType t);
-
 int64_t ReadFile(FCBIndex file, int64_t pos, int64_t len, uint8_t* buff);
-
 int64_t WriteFile(FCBIndex file, int64_t pos, int64_t len, const uint8_t* buff);
+bool DeleteFile(FCBIndex file);
 
+
+FCBIndex Find(FCBIndex dir, string filename);
 void FileInfo(FCBIndex file, FileControlBlock* fcb);
-
 vector<FCBIndex> GetChildren(FCBIndex dir);

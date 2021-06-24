@@ -36,10 +36,6 @@ void BiSet::set(uint32_t index, bool val) {
 }
 BiSet::~BiSet() { free(this->data); }
 
-FileControlBlock FileControlBlock::operator=(FileControlBlock& val) {
-	memcpy(this, &val, sizeof(FileControlBlock));
-	return *this;
-}
 FileControlBlock::FileControlBlock() {}
 FileControlBlock::FileControlBlock(enum FileType t, const char* name, uint8_t AccessMode, FCBIndex parent) {
 	strcpy(Name, name);
@@ -49,7 +45,7 @@ FileControlBlock::FileControlBlock(enum FileType t, const char* name, uint8_t Ac
 	this->Parent = parent;
 }
 
-static BlockIndex getEmptyBlock() {
+static BlockIndex GetEmptyBlock() {
 	for (size_t i = 0; i < DataBitMap->SizeOfByte; ++i) {
 		if (DataBitMap->data[i] != 0xFF) {
 			for (int j = 0; j < 8; ++j) {
@@ -62,7 +58,7 @@ static BlockIndex getEmptyBlock() {
 	printf("Disk Full!\n");
 	return -1;
 }
-static FCBIndex getEmptyFCB() {
+static FCBIndex GetEmptyFCB() {
 
 	for (size_t i = 0; i < FCBBitMap->SizeOfByte; ++i) {
 		if (FCBBitMap->data[i] != 0xFF) {
@@ -144,7 +140,7 @@ public:
 		BlockIndex blockIndex = -1;
 		for (int i = 0; i < 10; i++) {
 			if (FCB.DirectBlock[i] == -1) {
-				blockIndex = getEmptyBlock();
+				blockIndex = GetEmptyBlock();
 				DataBitMap->set(blockIndex, true);
 				StoreBlock(blockIndex, blockBuff); //写入数据块
 				FCB.DirectBlock[i] = blockIndex;   //更新FCB
@@ -156,7 +152,7 @@ public:
 			LoadBlock(FCB.Pointer, pointerBuff);
 			for (uint64_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(BlockIndex)) {
 				if (*(BlockIndex*)(pointerBuff + pos) == -1) {
-					blockIndex = getEmptyBlock();
+					blockIndex = GetEmptyBlock();
 					DataBitMap->set(blockIndex, true);
 					StoreBlock(blockIndex, blockBuff); //写入数据块
 					*(BlockIndex*)(pointerBuff + pos) = blockIndex;
@@ -204,7 +200,6 @@ public:
 
 //Functions
 bool LoadDisk() {
-	auto size = getDiskSize();
 	ReadDisk((uint8_t*)&Super, 0, sizeof(Super));
 	if (strcmp(Super.Version, VERSION_STRING) == 0) {
 		FCBBitMap = new BiSet(Super.FCBNum);        //初始化FCB的bitmap
@@ -269,8 +264,6 @@ void FormatDisk(uint32_t blocksize, uint32_t FCBBlockNum) {
 	WriteDisk(FCBBitMap->data, Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);    //写入FCB的bitmap
 	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte); //写入DataBlock的bitmap
 }
-
-void Login(string userName, string password) {}
 
 void PrintDiskInfo() {
 	printf("================================================\n");
@@ -370,7 +363,6 @@ FCBIndex CreateFile(string name, FCBIndex dir) { return Create(name, dir, FileTy
 
 
 
-
 FCBIndex Find(FCBIndex dir, string filename) {
 	FileControlBlock fcb, result;
 	LoadFCB(dir, &fcb);
@@ -431,7 +423,7 @@ FCBIndex Create(string name, FCBIndex dir, enum FileType t) {
 
 	//创建新的FCB
 	FileControlBlock fcb(t, name.c_str(), Access::Read | Access::Write | Access::Delete, dir);
-	FCBIndex fcbIndex = getEmptyFCB();
+	FCBIndex fcbIndex = GetEmptyFCB();
 
 
 
@@ -445,7 +437,7 @@ FCBIndex Create(string name, FCBIndex dir, enum FileType t) {
 			StoreFCB(fcbIndex, &fcb);
 
 			MakeDirBlock(fcbIndex, BlockBuff);
-			BlockIndex newDirPage = getEmptyBlock();
+			BlockIndex newDirPage = GetEmptyBlock();
 			DataBitMap->set(newDirPage, true);
 			dirFCB.DirectBlock[i] = newDirPage;
 			StoreBlock(newDirPage, BlockBuff);
