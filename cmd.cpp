@@ -397,18 +397,19 @@ void mkdir()
 
 
 // 功能: 在当前目录下创建文件(creat file1)
-void touch(void)
+void touch()
 {
 	if (s2.length() == 0) {
 		printf("Please input filename.\n");
 		return;
 	}
-	int i, temp_cur; string temps1, temps2;
+	int i, temp_cur; 
+    string temps1, temps2;
 	if (s2.find('/') != -1) {  // 要创建的file不在当前目录下，而是在路径中的指定文件下
 		temps1 = s2.substr(0, s2.find_last_of('/') + 1);
 		temps2 = s2.substr(s2.find_last_of('/') + 1);
 		s2 = temps1;
-		temp_cur = readby();
+		temp_cur = readby(temps1);
 		if (temp_cur == -1) {
 			printf("No Such Directory\n");
 		}
@@ -417,32 +418,90 @@ void touch(void)
 		temps2 = s2;
 		temp_cur = inum_cur;
 	}
-	for (i = 0; i < INODENUM; i++)  // 判断是否已存在同名文件
-		if ((inode_array[i].inum > 0) &&
-			(inode_array[i].type == '-') &&
-			temps2 == inode_array[i].file_name &&
-			inode_array[i].iparent == temp_cur &&
-			!strcmp(inode_array[i].user_name, user.user_name)) break;
-	if (i != INODENUM) {
-		printf("There is same file\n");
-		return;
-	}
-	for (i = 0; i < INODENUM; i++) // 查找一个空文件夹位置
-		if (inode_array[i].inum < 0) break;
-	if (i == INODENUM)    // 判断内存是否已满
-	{
-		printf("Inode is full.\n");
-		exit(-1);
-	}
+	FCBIndex index = CreateFile(s2,temp_cur);
+    if(index!=-1){
+        printf("Create File Successfully!\n");
+    }else{
+        printf("Failed!\n");
+    }
+}
 
-	// 创建文件file
-	inode_array[i].inum = i;
-	strcpy(inode_array[i].file_name, temps2.data());
-	inode_array[i].type = '-';
-	strcpy(inode_array[i].user_name, user.user_name);
-	inode_array[i].iparent = temp_cur;
-	inode_array[i].length = 0;
-	save_inode(i);  // 保存
+// an exist file
+void cat() {
+	int i, inum;
+	string temps1, temps2; int temp_cur;
+	if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
+		temps1 = s2.substr(0, s2.find_last_of('/') + 1);
+		temps2 = s2.substr(s2.find_last_of('/') + 1);
+		string temps = s2;
+		s2 = temps1;
+		temp_cur = readby(temps1);
+		s2 = temps;
+	}
+	else {
+		temps2 = s2;
+		temp_cur = inum_cur;
+	}
+    FCBIndex file_cur = Find(temp_cur, s2);
+    FileControlBlock *fcb;
+    GetFCB(file_cur, &fcb);
+    uint8_t *buff;
+	int64_t res = ReadFile(file_cur, 0, fcb->Size, &buff);
+    if(res!=-1){
+        printf("%s\n", buff);
+    }else{
+        printf("Read Fail!\n");
+    }
+    
+}
+
+void vi() {
+	int i, inum;
+	string temps1, temps2; int temp_cur;
+    char temp[10 * BLKSIZE];
+    uint8_t *buff;
+	if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
+		temps1 = s2.substr(0, s2.find_last_of('/') + 1);
+		temps2 = s2.substr(s2.find_last_of('/') + 1);
+		string temps = s2;
+		s2 = temps1;
+		temp_cur = readby(temps1);
+		s2 = temps;
+	}
+	else {
+		temps2 = s2;
+		temp_cur = inum_cur;
+	}
+    FCBIndex file_cur = Find(temp_cur, s2);
+    FileControlBlock *fcb;
+    GetFCB(file_cur, &fcb);
+    if(fcb->Size == 0){
+        printf('Please input: \n');
+        gets_s(temp);
+        int64_t res = WriteFile(file_cur, 0, strlen(temp), temp);
+    }else{
+        char choice;
+        printf("This file already exist data! \n");
+        printf("Overwrite or append? input o/a:");
+        scanf("%c", &choice);
+        if(choice == 'o'){
+            printf("Please input: \n");
+            gets_s(temp);
+            int64_t res = WriteFile(file_cur, 0, strlen(temp), temp);
+        }
+        else if(choice == 'a'){
+            printf("Please input: \n");
+            gets_s(temp);
+            int64_t res = WriteFile(file_cur, fcb->Size+1, strlen(temp), temp);
+        }else{
+            printf("Exit write!\n")
+        }
+        if(res!=-1){
+            printf("Write file successfully!\n");
+        }else{
+            printf("Failed to write!\n");
+        }
+    }
 }
 
 
@@ -477,7 +536,7 @@ void command(void)
             cd(s2);
             break;
         case 2:
-            ls();
+            ls(s2);
             break;
         case 3:
             mkdir();
@@ -492,7 +551,7 @@ void command(void)
             cat();
             break;
         case 7:
-            vi();
+            vi(); // open and write something to a particular file
             break;
         case 8:
             // close();
