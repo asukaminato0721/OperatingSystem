@@ -9,6 +9,8 @@
 #define MAX_BLOCK_SPACE (Super.BlockSize - sizeof(Block))
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
+#define VERSION_STRING "SimDisk V1.0"
+
 using namespace std;
 
 typedef int32_t BlockIndex;
@@ -52,6 +54,7 @@ enum class FileType : uint8_t { File, Directory };
 struct SuperBlock {
 	uint16_t FCS = 0;              //循环校验码
 
+	char Version[16];				//文件系统版本号
 	uint32_t DiskSize;             //磁盘大小
 	uint32_t BlockSize;            //块大小
 	uint32_t BlockNum;             //块数量(=DISK_SIZE/块大小)
@@ -62,10 +65,7 @@ struct SuperBlock {
 	uint32_t FCBNum, DataBlockNum; // FCB数量和DataBlock数量
 };
 
-// FCB的bitmap
-extern BiSet* FCBBitMap;
-// Data数据块的bitmap
-extern BiSet* DataBitMap;
+
 
 struct Block {
 	uint16_t FCS = 0;  //循环校验码
@@ -76,15 +76,6 @@ struct Block {
 	// Dir		   : FCBIndex[]
 };
 
-struct DataBlock : Block {
-	uint8_t data[];
-};
-struct PointerBlock : Block {
-	BlockIndex data[];
-};
-struct DirBlock : Block {
-	FCBIndex data[];
-};
 
 //文件控制段（一个Block里可以存放多个FCB）
 struct FileControlBlock {
@@ -104,15 +95,19 @@ struct FileControlBlock {
 	uint8_t __padding[6];
 };
 
+// FCB的bitmap
+extern BiSet* FCBBitMap;
+// Data数据块的bitmap
+extern BiSet* DataBitMap;
+//超级块信息
 extern SuperBlock Super;
 
 void Login(string userName, string password);
 
-void Load();
 
-void PrintDiskInfo();
-
+bool LoadDisk();
 void FormatDisk(uint32_t blocksize = 1 << 10, uint32_t FCBBlockNum = 0);
+void PrintDiskInfo();
 
 
 FCBIndex CreateDirectory(string name, FCBIndex parent);
@@ -120,7 +115,7 @@ FCBIndex CreateDirectory(string name, FCBIndex parent);
 FCBIndex CreateFile(string name, FCBIndex dir);
 bool DeleteFile(FCBIndex file);
 void PrintDir(FCBIndex dir);
-void PrintFileInfo(FCBIndex file);
+void PrintInfo(FCBIndex file);
 
 
 FCBIndex Find(FCBIndex dir, string filename);

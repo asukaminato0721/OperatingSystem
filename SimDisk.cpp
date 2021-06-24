@@ -31,7 +31,10 @@ int main() {
 
 	PrintDir(0);
 	PrintDiskInfo();
-	PrintFileInfo(file1);
-	PrintFileInfo(0);
+	PrintInfo(file1);
+	PrintInfo(0);
+
+	LoadDisk();
+	cout << "END" << endl;
 
 }
