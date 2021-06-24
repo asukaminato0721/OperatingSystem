@@ -8,7 +8,7 @@ using namespace std;
 #include <iostream>
 #include <vector>
 
-#define BLKSIZE 1024  // 数据块的大小
+#define BLKSIZE Super.BlockSize  // 数据块的大小
 #define BLKNUM 512    // 数据块的块数
 #define INODESIZE 128 // （fcb）i节点的大小
 #define INODENUM 32   // i节点的数目
@@ -153,7 +153,7 @@ void pathset()
         FileControlBlock *fcb;
         while (temp != 0)
         {
-            Getfcb(temp, fcb);
+            GetFCB(temp, &fcb);
             s = fcb->Name + s;
             s = '/' + s;
             temp = fcb->Parent;
@@ -350,11 +350,11 @@ int readby(string path)
     return result_cur;
 }
 
-void dir(string path)
+void ls(string path)   // path为空则列出当前文件夹下的全部子文件，不为空则列出path路径下的子文件
 {
     int temp_cur;
     int i = 0;
-    if (path.empty())
+    if (path.empty())  // path为空，当前文件夹下的子文件
     { //
         temp_cur = inum_cur;
     }
@@ -371,38 +371,80 @@ void dir(string path)
     }
     if (temp_cur != -1)
     {
-        vector<FCBIndex> indexs = GetChildren(temp_cur);
-        for (i = 0; i < INODENUM; i++)
+        vector<FCBIndex> v = GetChildren(temp_cur);
+	    printf("%12s | %12s | %6s | % 10s\n", "Name", "Size", "FCB", "Physical Address");
+        for (unsigned int count = 0; count < v.size(); count++)
         {
-            if ((inode_array[i].inum > 0) &&
-                (inode_array[i].iparent == temp_cur) && !strcmp(inode_array[i].user_name, user.user_name))
-            {
-                if (inode_array[i].type == 'd')
-                {
-                    printf("%-20s<DIR>\n", inode_array[i].file_name);
-                }
-                if (inode_array[i].type == '-')
-                {
-                    printf("%-20s%12d bytes\n", inode_array[i].file_name, inode_array[i].length);
-                }
-            }
+            PrintDir(v[count]);
         }
     }
 }
 
+//cmd创建文件函数，在当前目录下创建文件夹
 void mkdir()
 {
     int i;
     if (s2.empty())
     {
-        cout << "Please input name" << endl;
+        cout << "Please input directery name" << endl;
         return;
     }
     else
     {
-        CreateDirectory(s2, inum_cur);
+        CreateDirectory(s2, inum_cur);//调用底层函数创建
     }
 }
+
+
+// 功能: 在当前目录下创建文件(creat file1)
+void touch(void)
+{
+	if (s2.length() == 0) {
+		printf("Please input filename.\n");
+		return;
+	}
+	int i, temp_cur; string temps1, temps2;
+	if (s2.find('/') != -1) {  // 要创建的file不在当前目录下，而是在路径中的指定文件下
+		temps1 = s2.substr(0, s2.find_last_of('/') + 1);
+		temps2 = s2.substr(s2.find_last_of('/') + 1);
+		s2 = temps1;
+		temp_cur = readby();
+		if (temp_cur == -1) {
+			printf("No Such Directory\n");
+		}
+	}
+	else {
+		temps2 = s2;
+		temp_cur = inum_cur;
+	}
+	for (i = 0; i < INODENUM; i++)  // 判断是否已存在同名文件
+		if ((inode_array[i].inum > 0) &&
+			(inode_array[i].type == '-') &&
+			temps2 == inode_array[i].file_name &&
+			inode_array[i].iparent == temp_cur &&
+			!strcmp(inode_array[i].user_name, user.user_name)) break;
+	if (i != INODENUM) {
+		printf("There is same file\n");
+		return;
+	}
+	for (i = 0; i < INODENUM; i++) // 查找一个空文件夹位置
+		if (inode_array[i].inum < 0) break;
+	if (i == INODENUM)    // 判断内存是否已满
+	{
+		printf("Inode is full.\n");
+		exit(-1);
+	}
+
+	// 创建文件file
+	inode_array[i].inum = i;
+	strcpy(inode_array[i].file_name, temps2.data());
+	inode_array[i].type = '-';
+	strcpy(inode_array[i].user_name, user.user_name);
+	inode_array[i].iparent = temp_cur;
+	inode_array[i].length = 0;
+	save_inode(i);  // 保存
+}
+
 
 void info()
 {
@@ -429,7 +471,7 @@ void command(void)
             printf("\n");
             break;
         case 0:
-            help();
+            help();  
             break;
         case 1:
             cd(s2);

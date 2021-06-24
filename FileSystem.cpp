@@ -1,897 +1,638 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "FileSystem.h"
 #include "Driver.h"
+using namespace std;
 
-#define FILE_CONTROL_BLOCK_SIZE 128u
-#define MAX_POINTER ((Super.BlockSize-sizeof(Block))/sizeof(BlockIndex)+10)
-#define MAX_BLOCK_SPACE (Super.BlockSize-sizeof(Block))
-#define MAX(x,y) (((x)>(y))?(x):(y))
+// TODO ï¿½ï¿½ É¾ï¿½ï¿½ï¿½Ä¼ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ä¿Â¼ï¿½ï¿½Ä¿Â¼ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½Õ»ï¿½
 
-
-BiSet::BiSet(uint32_t size)
-{
-	this->SizeOfBool = size;
-	this->SizeOfByte = (int)ceil(size / 8);
-	if (size % 8 != 0) {
-		this->SizeOfByte++;
-	}
-	this->data = (uint8_t*)calloc(this->SizeOfByte, sizeof(uint8_t));
+BiSet::BiSet(uint32_t size) {
+    this->SizeOfBool = size;
+    this->SizeOfByte = (int)ceil(size / 8);
+    if (size % 8 != 0) {
+        this->SizeOfByte++;
+    }
+    this->data = (uint8_t *)calloc(this->SizeOfByte, sizeof(uint8_t));
 }
-bool BiSet::get(uint32_t index) {
-	return bool(data[index / 8] & (1 << (index % 8)));
-}
+bool BiSet::get(uint32_t index) { return bool(data[index / 8] & (1 << (index % 8))); }
 void BiSet::set(uint32_t index, bool val) {
-	if (val == true) {
-		this->data[index / 8] = this->data[index / 8] | (1 << (index % 8));
-	}
-	else {
-		uint8_t mask = ~(uint8_t)(1 << (index % 8));
-		this->data[index / 8] = this->data[index / 8] & mask;
-	}
+    if (val == true) {
+        this->data[index / 8] = this->data[index / 8] | (1 << (index % 8));
+    } else {
+        uint8_t mask = ~(uint8_t)(1 << (index % 8));
+        this->data[index / 8] = this->data[index / 8] & mask;
+    }
 }
-BiSet::~BiSet()
-{
-	free(this->data);
-}
+BiSet::~BiSet() { free(this->data); }
 
-FileControlBlock FileControlBlock::operator=(FileControlBlock& val)
-{
-	memcpy(this, &val, sizeof(FileControlBlock));
-	return *this;
-
+FileControlBlock FileControlBlock::operator=(FileControlBlock &val) {
+    memcpy(this, &val, sizeof(FileControlBlock));
+    return *this;
 }
-FileControlBlock::FileControlBlock()
-{
-
-}
-FileControlBlock::FileControlBlock(enum FileType t, const char* name, uint8_t AccessMode, FCBIndex parent)
-{
-	strcpy(Name, name);
-	this->Type = t;
-	time(&this->CreateTime);
-	this->Size = 0;
-	this->Parent = parent;
+FileControlBlock::FileControlBlock() {}
+FileControlBlock::FileControlBlock(enum FileType t, const char *name, uint8_t AccessMode, FCBIndex parent) {
+    strcpy(Name, name);
+    this->Type = t;
+    time(&this->CreateTime);
+    this->Size = 0;
+    this->Parent = parent;
 }
 
 SuperBlock Super;
 
-
-BiSet* FCBBitMap, * DataBitMap;
+BiSet *FCBBitMap, *DataBitMap;
 bool isMounted = false;
 
-
 BlockIndex getEmptyBlock() {
-	if (isMounted == false) {
-		printf("Mount a disk first.\n");
-		return -1;
-	}
-	else {
-		for (size_t i = 0; i < DataBitMap->SizeOfByte; ++i)
-		{
-			if (DataBitMap->data[i] != 0xFF) {
-				for (int j = 0; j < 8; ++j) {
-					if (DataBitMap->get(i * 8 + j) == false && i * 8 + j < DataBitMap->SizeOfBool) {
-						return i * 8 + j;
-					}
-				}
-			}
-		}
-		printf("Disk Full!\n");
-		return -1;
-	}
+    if (isMounted == false) {
+        printf("Mount a disk first.\n");
+        return -1;
+    } else {
+        for (size_t i = 0; i < DataBitMap->SizeOfByte; ++i) {
+            if (DataBitMap->data[i] != 0xFF) {
+                for (int j = 0; j < 8; ++j) {
+                    if (DataBitMap->get(i * 8 + j) == false && i * 8 + j < DataBitMap->SizeOfBool) {
+                        return i * 8 + j;
+                    }
+                }
+            }
+        }
+        printf("Disk Full!\n");
+        return -1;
+    }
 }
 
 FCBIndex getEmptyFCB() {
-	if (isMounted == false) {
-		printf("Mount a disk first.\n");
-		return -1;
-	}
-	else {
-		for (size_t i = 0; i < FCBBitMap->SizeOfByte; ++i)
-		{
-			if (FCBBitMap->data[i] != 0xFF) {
-				for (int j = 0; j < 8; ++j) {
-					if (FCBBitMap->get(i * 8 + j) == false && i * 8 + j < FCBBitMap->SizeOfBool) {
-						return i * 8 + j;
-					}
-				}
-			}
-		}
-		printf("Disk Full!\n");
-		return -1;
-	}
+    if (isMounted == false) {
+        printf("Mount a disk first.\n");
+        return -1;
+    } else {
+        for (size_t i = 0; i < FCBBitMap->SizeOfByte; ++i) {
+            if (FCBBitMap->data[i] != 0xFF) {
+                for (int j = 0; j < 8; ++j) {
+                    if (FCBBitMap->get(i * 8 + j) == false && i * 8 + j < FCBBitMap->SizeOfBool) {
+                        return i * 8 + j;
+                    }
+                }
+            }
+        }
+        printf("Disk Full!\n");
+        return -1;
+    }
 }
 
-
-void LoadFCB(FCBIndex index, FileControlBlock* buff) {
-	ReadDisk((uint8_t*)buff, Super.FCBOffset * Super.BlockSize + index * FILE_CONTROL_BLOCK_SIZE, sizeof(FileControlBlock));
-	return;
+void LoadFCB(FCBIndex index, FileControlBlock *buff) {
+    ReadDisk((uint8_t *)buff, Super.FCBOffset * Super.BlockSize + index * FILE_CONTROL_BLOCK_SIZE, sizeof(FileControlBlock));
+    return;
 }
-void StoreFCB(FCBIndex index, FileControlBlock* buff) {
-	WriteDisk((uint8_t*)buff, Super.FCBOffset * Super.BlockSize + index * FILE_CONTROL_BLOCK_SIZE, sizeof(FileControlBlock));
-	return;
+void StoreFCB(FCBIndex index, FileControlBlock *buff) {
+    WriteDisk((uint8_t *)buff, Super.FCBOffset * Super.BlockSize + index * FILE_CONTROL_BLOCK_SIZE, sizeof(FileControlBlock));
+    return;
 }
-void LoadBlock(BlockIndex index, uint8_t* buff) {
-	ReadDisk(buff, (index + Super.DataOffset) * Super.BlockSize, Super.BlockSize);
+void LoadBlock(BlockIndex index, uint8_t *buff) { ReadDisk(buff, (index + Super.DataOffset) * Super.BlockSize, Super.BlockSize); }
+void StoreBlock(BlockIndex index, uint8_t *buff) { WriteDisk(buff, (index + Super.DataOffset) * Super.BlockSize, Super.BlockSize); }
+
+void MakeDirBlock(FCBIndex firstIndex, uint8_t *buff) {
+    ((Block *)buff)->Size = sizeof(FCBIndex);
+    *(FCBIndex *)(buff + sizeof(Block)) = firstIndex;
+    for (size_t i = sizeof(Block) + sizeof(FCBIndex); i < Super.BlockSize; i += sizeof(FCBIndex)) {
+        *(FCBIndex *)(buff + i) = -1;
+    }
 }
-void StoreBlock(BlockIndex index, uint8_t* buff) {
-	WriteDisk(buff, (index + Super.DataOffset) * Super.BlockSize, Super.BlockSize);
-}
-void MakeDirBlock(FCBIndex firstIndex, uint8_t* buff) {
-	((Block*)buff)->Size = sizeof(FCBIndex);
-	*(FCBIndex*)(buff + sizeof(Block)) = firstIndex;
-	for (size_t i = sizeof(Block) + sizeof(FCBIndex); i < Super.BlockSize; i += sizeof(FCBIndex))
-	{
-		*(FCBIndex*)(buff + i) = -1;
-	}
-}
-inline uint16_t& BlockSize(uint8_t* blockBuff) {
-	return ((Block*)blockBuff)->Size;
-}
-inline uint16_t& BlockFCS(uint8_t* blockBuff) {
-	return ((Block*)blockBuff)->FCS;
-}
+inline uint16_t &BlockSize(uint8_t *blockBuff) { return ((Block *)blockBuff)->Size; }
+inline uint16_t &BlockFCS(uint8_t *blockBuff) { return ((Block *)blockBuff)->FCS; }
 
-bool AppendNewBlock(FileControlBlock* fcb, FCBIndex fcbIndex, uint8_t* blockBuff) {
+class FilePointerReader {
+  public:
+    FilePointerReader() { Pointer = (uint8_t *)malloc(Super.BlockSize); }
+    ~FilePointerReader() { free(Pointer); }
 
-	for (int i = 0; i < 10; i++) {
-		if (fcb->DirectBlock[i] == -1) {
-			BlockIndex blockIndex = getEmptyBlock();
-			DataBitMap->set(blockIndex, true);
-			StoreBlock(blockIndex, blockBuff);//Ð´ÈëÊý¾Ý¿é
-			fcb->DirectBlock[i] = blockIndex;//¸üÐÂFCB
-			goto AppendNewBlock_end;
-		}
-	}
-	if (fcb->Pointer != -1) {
-		uint8_t* pointerBuff = (uint8_t*)malloc(Super.BlockSize);
-		LoadBlock(fcb->Pointer, pointerBuff);
-		for (uint64_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(BlockIndex)) {
-			if (*(BlockIndex*)(pointerBuff + pos) == -1) {
-				BlockIndex blockIndex = getEmptyBlock();
-				DataBitMap->set(blockIndex, true);
-				StoreBlock(blockIndex, blockBuff);//Ð´ÈëÊý¾Ý¿é
-				*(BlockIndex*)(pointerBuff + pos) = blockIndex;
-				StoreBlock(fcb->Pointer, pointerBuff);//¸üÐÂpointer¿é
-				free(pointerBuff);
-				goto AppendNewBlock_end;
-			}
-		}
-		printf("ERROR:Append Block Failed! No Pointer remain.\n");
-		return false;
-	}
-AppendNewBlock_end:
-	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//Ð´ÈëDataBlockµÄbitmap
-	StoreFCB(fcbIndex, fcb);
-	return true;
-}
+    void Load(FCBIndex index) {
+        LoadFCB(index, &FCB);
+        for (size_t i = 0; i < 10; i++) {
+            BlockList.push_back(FCB.DirectBlock[i]);
+        }
+        if (FCB.Pointer != -1) {
+            LoadBlock(FCB.Pointer, Pointer);
+            for (auto iter = (BlockIndex *)(Pointer + sizeof(Block)); iter < (BlockIndex *)(Pointer + Super.BlockSize); iter++) {
+                BlockList.push_back(*iter);
+            }
+        }
+    }
+    //ï¿½ï¿½È¡ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½Äµï¿½indexï¿½ï¿½ï¿½ï¿½
+    BlockIndex GetBlockIndex(uint32_t index) {
+        if (index < 10) {
+            return FCB.DirectBlock[index];
+        } else if (FCB.Pointer == -1) {
+            return -1;
+        } else {
+            return *((BlockIndex *)(Pointer + sizeof(Block)) + (index % 10));
+        }
+    }
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ÂµÄ¿ï¿½
+    BlockIndex AddNewBlock(uint8_t *blockBuff) {
+        BlockIndex blockIndex = -1;
+        for (int i = 0; i < 10; i++) {
+            if (FCB.DirectBlock[i] == -1) {
+                blockIndex = getEmptyBlock();
+                DataBitMap->set(blockIndex, true);
+                StoreBlock(blockIndex, blockBuff); //Ð´ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
+                FCB.DirectBlock[i] = blockIndex;   //ï¿½ï¿½ï¿½ï¿½FCB
+                goto AppendNewBlock_end;
+            }
+        }
+        if (FCB.Pointer != -1) {
+            uint8_t *pointerBuff = (uint8_t *)malloc(Super.BlockSize);
+            LoadBlock(FCB.Pointer, pointerBuff);
+            for (uint64_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(BlockIndex)) {
+                if (*(BlockIndex *)(pointerBuff + pos) == -1) {
+                    blockIndex = getEmptyBlock();
+                    DataBitMap->set(blockIndex, true);
+                    StoreBlock(blockIndex, blockBuff); //Ð´ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
+                    *(BlockIndex *)(pointerBuff + pos) = blockIndex;
+                    StoreBlock(FCB.Pointer, pointerBuff); //ï¿½ï¿½ï¿½ï¿½pointerï¿½ï¿½
+                    free(pointerBuff);
+                    goto AppendNewBlock_end;
+                }
+            }
+            printf("ERROR:Append Block Failed! No Pointer remain.\n");
+            return blockIndex;
+        }
+    AppendNewBlock_end:
+        WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte); //Ð´ï¿½ï¿½DataBlockï¿½ï¿½bitmap
+        StoreFCB(Self_Index, &FCB);
+        return true;
+    }
+    //ï¿½ï¿½ï¿½ï¿½indexÒ³ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½
+    BlockIndex ReadPage(uint32_t index, uint8_t *blockBuff) {
+        if (index < 10) {
+            if (FCB.DirectBlock[index] != -1) {
+                LoadBlock(FCB.DirectBlock[index], blockBuff);
+                return FCB.DirectBlock[index];
+            } else {
+                return -1;
+            }
+        } else {
+            auto blockId = *((BlockIndex *)(Pointer + sizeof(Block)) + (index % 10));
+            if (blockId != -1) {
+                LoadBlock(blockId, blockBuff);
+                return blockId;
+            } else {
+                return -1;
+            }
+        }
+    }
 
-class DataReader
-{
-public:
-	DataReader(FCBIndex FcbIndex)
-	{
-		this->PointerPage = (uint8_t*)malloc(Super.BlockSize);
-		LoadFCB(FcbIndex, &fcb);
-
-	}
-	~DataReader()
-	{
-		free(PointerPage);
-	}
-	bool ReadNextBlock(uint8_t* buff, BlockIndex* block) {
-		if (blockIndex < 10) {
-			if (fcb.DirectBlock[blockIndex] == -1) {
-				return false;
-			}
-			else {
-				LoadBlock(fcb.DirectBlock[blockIndex], buff);
-				*block = fcb.DirectBlock[blockIndex];
-				blockIndex++;
-				return true;
-			}
-		}
-		else {
-			if (fcb.Pointer == -1) {
-				return false;
-			}
-			else {
-				BlockIndex secondPosIndex = blockIndex % 10;
-				if (secondPosIndex * sizeof(BlockIndex) + sizeof(Block) >= Super.BlockSize) {
-					return false;
-				}
-				BlockIndex SecDataPointer;
-				ReadDisk((uint8_t*)&SecDataPointer, (Super.DataOffset + fcb.Pointer) * Super.BlockSize + secondPosIndex * sizeof(FCBIndex), sizeof(FCBIndex));
-				if (SecDataPointer == -1) {
-					return false;
-				}
-				else {
-					LoadBlock(SecDataPointer, buff);
-					*block = SecDataPointer;
-					blockIndex++;
-					return true;
-				}
-			}
-		}
-	}
-
-	FileControlBlock fcb;
-	BlockIndex blockIndex = 0;
-	uint8_t* PointerPage = nullptr;
-
-};
-
-class BlockManager
-{
-public:
-
-	BlockManager()
-	{
-		BlockBuff = (uint8_t*)malloc(Super.BlockSize);
-	}
-
-	void load(BlockIndex index)
-	{
-		LoadBlock(index, BlockBuff);
-		this->Fcs = ((Block*)BlockBuff)->FCS;
-		this->Size = ((Block*)BlockBuff)->Size;
-	}
-	void makeBuffer() {
-		((Block*)this->BlockBuff)->FCS = Fcs;
-		((Block*)this->BlockBuff)->Size = Size;
-	}
-	~BlockManager()
-	{
-		free(BlockBuff);
-	}
-
-	uint8_t* BlockBuff = nullptr;
-	uint16_t Fcs;
-	uint16_t Size;
-};
-class PointerBlockManager :public BlockManager
-{
-public:
-	void write(BlockIndex index)
-	{
-		Block b;
-		for (size_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(BlockIndex))
-		{
-			if (*(BlockIndex*)(BlockBuff + pos) != -1) {
-				b.Size++;
-			}
-		}
-		b.FCS = 0;
-		memcpy(BlockBuff, &b, sizeof(Block));
-		StoreBlock(index, BlockBuff);
-	}
-	BlockIndex* begin() {
-		return (BlockIndex*)(this->BlockBuff + sizeof(Block));
-	}
-	BlockIndex* end() {
-		return (BlockIndex*)(this->BlockBuff + Super.BlockSize);
-	}
-	BlockIndex* loc(uint64_t index) {
-		return (BlockIndex*)(this->BlockBuff + sizeof(Block) + (index * sizeof(BlockIndex)));
-	}
-};
-class DirBlockManager :public BlockManager
-{
-public:
-	void write(BlockIndex index)
-	{
-		Block b;
-		for (size_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(FCBIndex))
-		{
-			if (*(FCBIndex*)(BlockBuff + pos) != -1) {
-				b.Size++;
-			}
-		}
-		b.FCS = 0;
-		memcpy(BlockBuff, &b, sizeof(Block));
-		StoreBlock(index, BlockBuff);
-	}
-	FCBIndex* begin() {
-		return (FCBIndex*)(this->BlockBuff + sizeof(Block));
-	}
-	FCBIndex* end() {
-		return (FCBIndex*)(this->BlockBuff + Super.BlockSize);
-	}
-	FCBIndex* loc(uint64_t index) {
-		return (FCBIndex*)(this->BlockBuff + sizeof(Block) + (index * sizeof(FCBIndex)));
-	}
-};
-class DataBlockManager :public BlockManager
-{
-public:
-	void write(BlockIndex index, uint16_t size)
-	{
-		Block b;
-		b.Size = size;
-		b.FCS = 0;
-		memcpy(BlockBuff, &b, sizeof(Block));
-		StoreBlock(index, BlockBuff);
-
-	}
-	uint8_t* begin() {
-		return (uint8_t*)(this->BlockBuff + sizeof(Block));
-	}
-	uint8_t* end() {
-		return (uint8_t*)(this->BlockBuff + Super.BlockSize);
-	}
-};
-
-class FCBPointerManager
-{
-public:
-	FCBPointerManager() {
-		Pointer = (uint8_t*)malloc(Super.BlockSize);
-	}
-	~FCBPointerManager()
-	{
-		free(Pointer);
-	}
-
-	void Load(FCBIndex index) {
-		LoadFCB(index, &FCB);
-		for (size_t i = 0; i < 10; i++)
-		{
-			BlockList.push_back(FCB.DirectBlock[i]);
-		}
-		if (FCB.Pointer != -1) {
-			LoadBlock(FCB.Pointer, Pointer);
-			for (auto iter = (BlockIndex*)(Pointer + sizeof(Block)); iter < (BlockIndex*)(Pointer + Super.BlockSize); iter++)
-			{
-				BlockList.push_back(*iter);
-			}
-		}
-	}
-	//»ñÈ¡±¾ÎÄ¼þµÄµÚindex¸ö¿é
-	BlockIndex GetBlockIndex(uint32_t index) {
-		if (index < 10) {
-			return FCB.DirectBlock[index];
-		}
-		else if (FCB.Pointer == -1) {
-			return -1;
-		}
-		else {
-			return *((BlockIndex*)(Pointer + sizeof(Block)) + (index % 10));
-		}
-	}
-	//Ôö¼ÓÐÂµÄ¿é
-	BlockIndex AddNewBlock(uint8_t* blockBuff) {
-		BlockIndex blockIndex = -1;
-		for (int i = 0; i < 10; i++) {
-			if (FCB.DirectBlock[i] == -1) {
-				blockIndex = getEmptyBlock();
-				DataBitMap->set(blockIndex, true);
-				StoreBlock(blockIndex, blockBuff);//Ð´ÈëÊý¾Ý¿é
-				FCB.DirectBlock[i] = blockIndex;//¸üÐÂFCB
-				goto AppendNewBlock_end;
-			}
-		}
-		if (FCB.Pointer != -1) {
-			uint8_t* pointerBuff = (uint8_t*)malloc(Super.BlockSize);
-			LoadBlock(FCB.Pointer, pointerBuff);
-			for (uint64_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(BlockIndex)) {
-				if (*(BlockIndex*)(pointerBuff + pos) == -1) {
-					blockIndex = getEmptyBlock();
-					DataBitMap->set(blockIndex, true);
-					StoreBlock(blockIndex, blockBuff);//Ð´ÈëÊý¾Ý¿é
-					*(BlockIndex*)(pointerBuff + pos) = blockIndex;
-					StoreBlock(FCB.Pointer, pointerBuff);//¸üÐÂpointer¿é
-					free(pointerBuff);
-					goto AppendNewBlock_end;
-				}
-			}
-			printf("ERROR:Append Block Failed! No Pointer remain.\n");
-			return blockIndex;
-		}
-	AppendNewBlock_end:
-		WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//Ð´ÈëDataBlockµÄbitmap
-		StoreFCB(Self_Index, &FCB);
-		return true;
-	}
-	//½«µÚindexÒ³¶ÁÈëÄÚ´æ
-	BlockIndex ReadPage(uint32_t index, uint8_t* blockBuff) {
-		if (index < 10) {
-			if (FCB.DirectBlock[index] != -1) {
-				LoadBlock(FCB.DirectBlock[index], blockBuff);
-				return FCB.DirectBlock[index];
-			}
-			else {
-				return -1;
-			}
-		}
-		else {
-			auto blockId = *((BlockIndex*)(Pointer + sizeof(Block)) + (index % 10));
-			if (blockId != -1) {
-				LoadBlock(blockId, blockBuff);
-				return blockId;
-			}
-			else {
-				return -1;
-			}
-		}
-	}
-
-	FileControlBlock FCB;
-	uint8_t* Pointer;
-	FCBIndex Self_Index = -1;
-	vector<BlockIndex> BlockList;
-
+    FileControlBlock FCB;
+    uint8_t *Pointer;
+    FCBIndex Self_Index = -1;
+    vector<BlockIndex> BlockList;
 };
 
 void LoadDisk() {}
 
 void FormatDisk(uint32_t blocksize, uint32_t FCBBlockNum) {
-	auto size = getDiskSize();
+    auto size = getDiskSize();
 
-	//¹¹½¨Super¿é
-	Super.DiskSize = size;
-	Super.BlockSize = blocksize;
-	Super.BlockNum = Super.DiskSize / Super.BlockSize;
-	if (FCBBlockNum == 0) {
-		FCBBlockNum = (Super.BlockNum / 4) / (Super.BlockSize / FILE_CONTROL_BLOCK_SIZE);
-	}
+    //ï¿½ï¿½ï¿½ï¿½Superï¿½ï¿½
+    Super.DiskSize = size;
+    Super.BlockSize = blocksize;
+    Super.BlockNum = Super.DiskSize / Super.BlockSize;
+    if (FCBBlockNum == 0) {
+        FCBBlockNum = (Super.BlockNum / 4) / (Super.BlockSize / FILE_CONTROL_BLOCK_SIZE);
+    }
 
-	Super.FCBNum = FCBBlockNum * blocksize / FILE_CONTROL_BLOCK_SIZE;
+    Super.FCBNum = FCBBlockNum * blocksize / FILE_CONTROL_BLOCK_SIZE;
 
+    uint32_t FCBBitmapBlock = (uint32_t)ceil(Super.FCBNum / (8.0 * blocksize));         // FCBÎ»Ê¾Í¼ï¿½ï¿½Õ¼Blcokï¿½ï¿½
+    uint32_t RemainBlock = Super.BlockNum - 1 - FCBBitmapBlock - FCBBlockNum;           //Ê£ï¿½ï¿½ï¿½blockï¿½ï¿½ = ï¿½ï¿½blockï¿½ï¿½ - super - FCBÎ»Ê¾Í¼ - [DataÎ»Ê¾Í¼] - FCBBlockNum - [Data]
+    uint32_t DataBitmapBlock = (uint32_t)ceil(RemainBlock * 1.0 / (1 + 8 * blocksize)); //Î»Ê¾Í¼Õ¼xï¿½ï¿½blockï¿½ï¿½dataï¿½ï¿½ï¿½ï¿½`blocksize`*8*xï¿½ï¿½DataBlockï¿½ï¿½ï¿½ï¿½ï¿½ï¿½x=Remian/(1+8*blocksize)
+    Super.DataBlockNum = RemainBlock - DataBitmapBlock;
+    Super.FCBBitmapOffset = 1;
+    Super.DataBitmapOffset = 1 + FCBBitmapBlock;
+    Super.FCBOffset = Super.DataBitmapOffset + DataBitmapBlock;
+    Super.DataOffset = Super.FCBOffset + FCBBlockNum;
+    WriteDisk((uint8_t *)&Super, 0, sizeof(Super)); //Ð´ï¿½ï¿½SuperBlock
 
-	uint32_t FCBBitmapBlock = (uint32_t)ceil(Super.FCBNum / (8.0 * blocksize));						//FCBÎ»Ê¾Í¼ËùÕ¼BlcokÊý
-	uint32_t RemainBlock = Super.BlockNum - 1 - FCBBitmapBlock - FCBBlockNum;						//Ê£ÓàµÄblockÊý = ×ÜblockÊý - super - FCBÎ»Ê¾Í¼ - [DataÎ»Ê¾Í¼] - FCBBlockNum - [Data]
-	uint32_t DataBitmapBlock = (uint32_t)ceil(RemainBlock * 1.0 / (1 + 8 * blocksize));				//Î»Ê¾Í¼Õ¼x¸öblock£¬dataÇøÓÐ`blocksize`*8*x¸öDataBlock¡£ËùÒÔx=Remian/(1+8*blocksize)
-	Super.DataBlockNum = RemainBlock - DataBitmapBlock;
-	Super.FCBBitmapOffset = 1;
-	Super.DataBitmapOffset = 1 + FCBBitmapBlock;
-	Super.FCBOffset = Super.DataBitmapOffset + DataBitmapBlock;
-	Super.DataOffset = Super.FCBOffset + FCBBlockNum;
-	WriteDisk((uint8_t*)&Super, 0, sizeof(Super));															//Ð´ÈëSuperBlock
+    FCBBitMap = new BiSet(Super.FCBNum);        //ï¿½ï¿½Ê¼ï¿½ï¿½FCBï¿½ï¿½bitmap
+    DataBitMap = new BiSet(Super.DataBlockNum); //ï¿½ï¿½Ê¼ï¿½ï¿½Dataï¿½ï¿½bitmap
 
-	FCBBitMap = new BiSet(Super.FCBNum);																	//³õÊ¼»¯FCBµÄbitmap
-	DataBitMap = new BiSet(Super.DataBlockNum);																//³õÊ¼»¯DataµÄbitmap
+    isMounted = true;
 
-	isMounted = true;
+    //ï¿½ï¿½Ä¿Â¼ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Ý¿ï¿½
+    ////ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Â¼ï¿½ï¿½ï¿½Ý¿ï¿½
+    // uint8_t* DirDataBlock = (uint8_t*)malloc(Super.BlockSize);
+    // MakeDirBlock(0, DirDataBlock);
+    // BlockIndex StorgeLocation = getEmptyBlock();
+    // DataBitMap->set(StorgeLocation, true);																	//ï¿½ï¿½ï¿½ï¿½FCBï¿½ï¿½bitmap
+    // StoreBlock(StorgeLocation, DirDataBlock);																//Ð´ï¿½ï¿½DirectoryBlock
+    // free(DirDataBlock);
 
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Â¼FCB
+    FileControlBlock root(FileType::Directory, "Root", (uint8_t)Access::None, 0);
+    strcpy(root.Name, "Root");
+    root.AccessMode = (uint8_t)Access::None;
+    time(&root.CreateTime);
 
-	//¿ÕÄ¿Â¼²»ÐèÒªÊý¾Ý¿é
-	////¹¹½¨¸ùÄ¿Â¼Êý¾Ý¿é
-	//uint8_t* DirDataBlock = (uint8_t*)malloc(Super.BlockSize);
-	//MakeDirBlock(0, DirDataBlock);
-	//BlockIndex StorgeLocation = getEmptyBlock();
-	//DataBitMap->set(StorgeLocation, true);																	//ÉèÖÃFCBµÄbitmap
-	//StoreBlock(StorgeLocation, DirDataBlock);																//Ð´ÈëDirectoryBlock
-	//free(DirDataBlock);
+    root.Size = 0;
+    //ï¿½ï¿½Ä¿Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
+    // root.DirectBlock[0] = StorgeLocation;																	//ï¿½ï¿½ï¿½Ã´æ´¢ï¿½ï¿½ï¿?
+    FCBBitMap->set(0, true); //ï¿½ï¿½ï¿½ï¿½DataBlockï¿½ï¿½bitmap
+    // WriteDisk((uint8_t*)&root, Super.BlockSize * (Super.FCBOffset + 0), sizeof(root));
+    StoreFCB(0, &root); // rootï¿½ï¿½FCB.id = 0
 
-	//¹¹½¨¸ùÄ¿Â¼FCB
-	FileControlBlock root(FileType::Directory, "Root", (uint8_t)Access::None, 0);
-	strcpy(root.Name, "Root");
-	root.AccessMode = (uint8_t)Access::None;
-	time(&root.CreateTime);
-
-	root.Size = 0;
-	//¿ÕÄ¿Â¼ÔÝÎÞÊý¾Ý¿é
-	//root.DirectBlock[0] = StorgeLocation;																	//ÉèÖÃ´æ´¢¿éºÅ
-	FCBBitMap->set(0, true);																				//ÉèÖÃDataBlockµÄbitmap
-	//WriteDisk((uint8_t*)&root, Super.BlockSize * (Super.FCBOffset + 0), sizeof(root));						
-	StoreFCB(0, &root);																						//rootµÄFCB.id = 0
-
-	WriteDisk(FCBBitMap->data, Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);				//Ð´ÈëFCBµÄbitmap
-	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//Ð´ÈëDataBlockµÄbitmap
+    WriteDisk(FCBBitMap->data, Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);    //Ð´ï¿½ï¿½FCBï¿½ï¿½bitmap
+    WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte); //Ð´ï¿½ï¿½DataBlockï¿½ï¿½bitmap
 }
 
-void Login(string userName, string password) {
-
-}
+void Login(string userName, string password) {}
 
 void PrintDiskInfo() {
-	printf("================================================\n");
-	printf("Disk Info\n");
-	printf("------------------------------------------------\n");
-	printf("Basic info.\n");
-	printf("    Disk Size             = %8.2lf MByte\n", Super.DiskSize * 1.0 / (1 << 20));
-	printf("    Block Size            = %8d Bytes\n", Super.BlockSize);
-	printf("    Total                 = %8d Blocks\n", Super.BlockNum);
-	printf("------------------------------------------------\n");
-	printf("Format info.\n");
-	printf("    Super                 = %8d Blocks\n", 1);
-	printf("    FCB Bitmap            = %8d Blocks\n", Super.DataBitmapOffset - Super.FCBBitmapOffset);
-	printf("    Data Bitmap           = %8d Blocks\n", Super.FCBOffset - Super.DataBitmapOffset);
-	printf("    FCB                   = %8d Blocks\n", Super.DataOffset - Super.FCBOffset);
-	printf("                          = %8d pics\n", Super.FCBNum);
-	printf("    Data                  = %8d Blocks\n", Super.DataBlockNum);
-	printf("------------------------------------------------\n");
-	printf("Usage info.\n");
-	uint32_t freeFCB = 0, freeBlock = 0, usedFCB = 0, usedBlock = 0;
-	for (size_t i = 0; i < FCBBitMap->SizeOfBool; i++)
-	{
-		if (FCBBitMap->get(i) == false) {
-			freeFCB++;
-		}
-		else {
-			usedFCB++;
-		}
-	}
-	for (size_t i = 0; i < DataBitMap->SizeOfBool; i++)
-	{
-		if (DataBitMap->get(i) == false) {
-			freeBlock++;
-		}
-		else {
-			usedBlock++;
-		}
-	}
-	printf("    FCB Total            = %8d pics\n", freeFCB + usedFCB);
-	printf("        Available        = %8d pics\n", freeFCB);
-	printf("        Used             = %8d pics\n", usedFCB);
-	printf("    Block Total          = %8d Blocks\n", freeBlock + usedBlock);
-	printf("        Available        = %8d Blocks\n", freeBlock);
-	printf("        Used             = %8d Blocks\n", usedBlock);
+    printf("================================================\n");
+    printf("Disk Info\n");
+    printf("------------------------------------------------\n");
+    printf("Basic info.\n");
+    printf("    Disk Size             = %8.2lf MByte\n", Super.DiskSize * 1.0 / (1 << 20));
+    printf("    Block Size            = %8d Bytes\n", Super.BlockSize);
+    printf("    Total                 = %8d Blocks\n", Super.BlockNum);
+    printf("------------------------------------------------\n");
+    printf("Format info.\n");
+    printf("    Super                 = %8d Blocks\n", 1);
+    printf("    FCB Bitmap            = %8d Blocks\n", Super.DataBitmapOffset - Super.FCBBitmapOffset);
+    printf("    Data Bitmap           = %8d Blocks\n", Super.FCBOffset - Super.DataBitmapOffset);
+    printf("    FCB                   = %8d Blocks\n", Super.DataOffset - Super.FCBOffset);
+    printf("                          = %8d pics\n", Super.FCBNum);
+    printf("    Data                  = %8d Blocks\n", Super.DataBlockNum);
+    printf("------------------------------------------------\n");
+    printf("Usage info.\n");
+    uint32_t freeFCB = 0, freeBlock = 0, usedFCB = 0, usedBlock = 0;
+    for (size_t i = 0; i < FCBBitMap->SizeOfBool; i++) {
+        if (FCBBitMap->get(i) == false) {
+            freeFCB++;
+        } else {
+            usedFCB++;
+        }
+    }
+    for (size_t i = 0; i < DataBitMap->SizeOfBool; i++) {
+        if (DataBitMap->get(i) == false) {
+            freeBlock++;
+        } else {
+            usedBlock++;
+        }
+    }
+    printf("    FCB Total            = %8d pics\n", freeFCB + usedFCB);
+    printf("        Available        = %8d pics\n", freeFCB);
+    printf("        Used             = %8d pics\n", usedFCB);
+    printf("    Block Total          = %8d Blocks\n", freeBlock + usedBlock);
+    printf("        Available        = %8d Blocks\n", freeBlock);
+    printf("        Used             = %8d Blocks\n", usedBlock);
 
-	printf("================================================\n");
-
+    printf("================================================\n");
 }
 
 void PrintDir(FCBIndex dir) {
-	DataReader reader(dir);
-	uint8_t* buff = (uint8_t*)malloc(Super.BlockSize);
-	BlockIndex block = 0;
-	printf("================================================\n");
-	printf("%12s | %12s | %6s | % 10s\n", "Name", "Size", "FCB", "Physical Address");
-	FileControlBlock fcb;
-	while (reader.ReadNextBlock(buff, &block) == true)
-	{
-		for (uint64_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(FCBIndex)) {
-			if (*(FCBIndex*)(buff + pos) == -1) {
-				continue;
-			}
-			LoadFCB(*(FCBIndex*)(buff + pos), &fcb);
-			if (fcb.Type == FileType::Directory) {
-				printf("%12s | %12s | %6d | ", fcb.Name, "<Dir>", *(FCBIndex*)(buff + pos));
-			}
-			else {
-				printf("%12s | %12d | %6d | ", fcb.Name, fcb.Size, *(FCBIndex*)(buff + pos));
-			}
-			for (int i = 0; i < 10 && fcb.DirectBlock[i] != -1; i++)
-			{
-				printf("0x%08X ", fcb.DirectBlock[i]);
-			}
-			printf("\n");
-		}
-	}
+    uint8_t *blockBuff = (uint8_t *)malloc(Super.BlockSize);
+    BlockIndex block = 0;
+    printf("================================================\n");
+    printf("%12s | %12s | %6s | % 10s\n", "Name", "Size", "FCB", "Physical Address");
+    FileControlBlock DirFCB, childs;
+    LoadFCB(dir, &DirFCB);
+    for (size_t i = 0; i < 10 && DirFCB.DirectBlock[i] != -1; i++) {
+        LoadBlock(DirFCB.DirectBlock[i], blockBuff);
+        for (FCBIndex *iter = (FCBIndex *)(blockBuff + sizeof(Block)); iter < (FCBIndex *)(blockBuff + Super.BlockSize); iter++) {
+            if (*iter == -1) {
+                continue;
+            }
+            LoadFCB(*iter, &childs);
+            if (DirFCB.Type == FileType::Directory) {
+                printf("%12s | %12s | %6d | ", childs.Name, "<Dir>", *iter);
+            } else {
+                printf("%12s | %12d | %6d | ", childs.Name, childs.Size, *iter);
+            }
+            for (int i = 0; i < 10 && childs.DirectBlock[i] != -1; i++) {
+                printf("%X ", childs.DirectBlock[i]);
+            }
+            printf("\n");
+        }
+    }
 PrintDir_end:
-	printf("================================================\n\n");
-	free(buff);
+    printf("================================================\n\n");
+    free(blockBuff);
 }
 
 void PrintFileInfo(FCBIndex file) {
-	FileControlBlock fcb;
-	LoadFCB(file, &fcb);
-	printf("================================================\n");
-	printf("Name        : %s\n", fcb.Name);
-	if (fcb.Type == FileType::Directory) {
-		printf("Type        : Directory\n");
-	}
-	else {
-		printf("Type        : File\n");
-		printf("Size        : %d Bytes\n", fcb.Size);
-
-	}
-	printf("Create Time : %s\n", ctime(&fcb.CreateTime));
-	printf("Read Time   : %s\n", ctime(&fcb.ReadTime));
-	printf("Modify Time : %s\n", ctime(&fcb.ModifyTime));
-	printf("Parent      : %d\n", fcb.Parent);
-	printf("================================================\n");
+    FileControlBlock fcb;
+    LoadFCB(file, &fcb);
+    printf("================================================\n");
+    printf("Name        : %s\n", fcb.Name);
+    if (fcb.Type == FileType::Directory) {
+        printf("Type        : Directory\n");
+    } else {
+        printf("Type        : File\n");
+        printf("Size        : %d Bytes\n", fcb.Size);
+    }
+    printf("Create Time : %s\n", ctime(&fcb.CreateTime));
+    printf("Read Time   : %s\n", ctime(&fcb.ReadTime));
+    printf("Modify Time : %s\n", ctime(&fcb.ModifyTime));
+    printf("Parent      : %d\n", fcb.Parent);
+    printf("================================================\n");
 }
 
-FCBIndex Find(FCBIndex dir, string filename)
-{
-	FileControlBlock fcb, result;
-	LoadFCB(dir, &fcb);
-	if (fcb.Type == FileType::File) {
-		return -1;
-	}
-	else {
-		uint8_t* blockBuff = (uint8_t*)malloc(Super.BlockSize);
-		for (size_t i = 0; i < 10; i++)
-		{
-			if (fcb.DirectBlock[i] != -1) {
-				LoadBlock(fcb.DirectBlock[i], blockBuff);
-				for (int pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(FCBIndex)) {
-					FCBIndex fcbIndex = *(FCBIndex*)(blockBuff + pos);
-					if (fcbIndex != -1) {
-						LoadFCB(fcbIndex, &result);
-						if (strcmp(result.Name, filename.c_str()) == 0) {
-							free(blockBuff);
-							return fcbIndex;
-						}
-					}
-				}
-			}
-		}
-		free(blockBuff);
-		return -1;
-	}
+FCBIndex Find(FCBIndex dir, string filename) {
+    FileControlBlock fcb, result;
+    LoadFCB(dir, &fcb);
+    if (fcb.Type == FileType::File) {
+        return -1;
+    } else {
+        uint8_t *blockBuff = (uint8_t *)malloc(Super.BlockSize);
+        for (size_t i = 0; i < 10; i++) {
+            if (fcb.DirectBlock[i] != -1) {
+                LoadBlock(fcb.DirectBlock[i], blockBuff);
+                for (int pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(FCBIndex)) {
+                    FCBIndex fcbIndex = *(FCBIndex *)(blockBuff + pos);
+                    if (fcbIndex != -1) {
+                        LoadFCB(fcbIndex, &result);
+                        if (strcmp(result.Name, filename.c_str()) == 0) {
+                            free(blockBuff);
+                            return fcbIndex;
+                        }
+                    }
+                }
+            }
+        }
+        free(blockBuff);
+        return -1;
+    }
 }
+
+void GetFCB(FCBIndex file, FileControlBlock *fcb) { LoadFCB(file, fcb); }
 
 FCBIndex Create(string name, FCBIndex dir, enum FileType t) {
-	if (name.length() > 30) {
-		printf("Directory Name Too long!\n");
-		return -1;
-	}
-	uint8_t* BlockBuff = (uint8_t*)malloc(Super.BlockSize);
-	//¹¹½¨Data¿é!¿ÕÎÄ¼þ²»¹¹½¨Data¿é
+    if (name.length() > 30) {
+        printf("Directory Name Too long!\n");
+        return -1;
+    }
+    uint8_t *BlockBuff = (uint8_t *)malloc(Super.BlockSize);
+    //ï¿½ï¿½ï¿½ï¿½Dataï¿½ï¿½!ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Dataï¿½ï¿½
 
-
-	//¹¹½¨FCB¿é
-	FileControlBlock fcb(t, name.c_str(), (uint8_t)Access::Read | (uint8_t)Access::Write | (uint8_t)Access::Delete, dir);
-	//FCB.DirectBlock[0] = blockIndex;
-	FCBIndex fcbIndex = getEmptyFCB();
-	FCBBitMap->set(fcbIndex, true);
-	StoreFCB(fcbIndex, &fcb);
-	//Ð´Èë¸¸Ä¿Â¼(½«fcbIndexÐ´Èë¸¸Ä¿Â¼)
-	FileControlBlock dirFCB, NameCheck;
-	LoadFCB(dir, &dirFCB);
-	for (size_t i = 0; i < 10; i++)
-	{
-		if (dirFCB.DirectBlock[i] == -1) {//´æÈëÐÂµÄÄ¿Â¼Ò³
-			MakeDirBlock(fcbIndex, BlockBuff);
-			BlockIndex newDirPage = getEmptyBlock();
-			DataBitMap->set(newDirPage, true);
-			dirFCB.DirectBlock[i] = newDirPage;
-			StoreBlock(newDirPage, BlockBuff);
-		}
-		else {//³¢ÊÔ¼ÓÈëÏÖÓÐÄ¿Â¼Ò³£¬Ë³±ã¼ì²éÖØÃû
-			LoadBlock(dirFCB.DirectBlock[i], BlockBuff);
-			for (FCBIndex* iter = (FCBIndex*)(BlockBuff + sizeof(Block)); iter < (FCBIndex*)(BlockBuff + Super.BlockSize); iter++)
-			{
-				if (*iter == -1) {
-					*iter = fcbIndex;
-					BlockSize(BlockBuff) += sizeof(FCBIndex);
-					StoreBlock(dirFCB.DirectBlock[i], BlockBuff);
-					goto CreateFile_end;
-				}
-				else {
-					LoadFCB(*iter, &NameCheck);
-					if (strcmp(NameCheck.Name, name.c_str()) == 0) {
-						printf("Error:File name duplicate ,%s is already existed!\n", NameCheck.Name);
-						goto CreateFile_end;
-					}
-				}
-			}
-		}
-	}
+    //ï¿½ï¿½ï¿½ï¿½FCBï¿½ï¿½
+    FileControlBlock fcb(t, name.c_str(), (uint8_t)Access::Read | (uint8_t)Access::Write | (uint8_t)Access::Delete, dir);
+    // FCB.DirectBlock[0] = blockIndex;
+    FCBIndex fcbIndex = getEmptyFCB();
+    FCBBitMap->set(fcbIndex, true);
+    StoreFCB(fcbIndex, &fcb);
+    //Ð´ï¿½ë¸¸Ä¿Â¼(ï¿½ï¿½fcbIndexÐ´ï¿½ë¸¸Ä¿Â¼)
+    FileControlBlock dirFCB, NameCheck;
+    LoadFCB(dir, &dirFCB);
+    for (size_t i = 0; i < 10; i++) {
+        if (dirFCB.DirectBlock[i] == -1) { //ï¿½ï¿½ï¿½ï¿½ï¿½Âµï¿½Ä¿Â¼Ò³
+            MakeDirBlock(fcbIndex, BlockBuff);
+            BlockIndex newDirPage = getEmptyBlock();
+            DataBitMap->set(newDirPage, true);
+            dirFCB.DirectBlock[i] = newDirPage;
+            StoreBlock(newDirPage, BlockBuff);
+            goto CreateFile_end;
+        } else { //ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Â¼Ò³ï¿½ï¿½Ë³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+            LoadBlock(dirFCB.DirectBlock[i], BlockBuff);
+            for (FCBIndex *iter = (FCBIndex *)(BlockBuff + sizeof(Block)); iter < (FCBIndex *)(BlockBuff + Super.BlockSize); iter++) {
+                if (*iter == -1) {
+                    *iter = fcbIndex;
+                    BlockSize(BlockBuff) += sizeof(FCBIndex);
+                    StoreBlock(dirFCB.DirectBlock[i], BlockBuff);
+                    goto CreateFile_end;
+                } else {
+                    LoadFCB(*iter, &NameCheck);
+                    if (strcmp(NameCheck.Name, name.c_str()) == 0) {
+                        printf("Error:File name duplicate ,%s is already existed!\n", NameCheck.Name);
+                        goto CreateFile_end;
+                    }
+                }
+            }
+        }
+    }
 
 CreateFile_end:
-	StoreFCB(dir, &dirFCB);
-	WriteDisk(FCBBitMap->data, Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);				//Ð´ÈëFCBµÄbitmap
-	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//Ð´ÈëDataBlockµÄbitmap
-	free(BlockBuff);
-	return fcbIndex;
+    StoreFCB(dir, &dirFCB);
+    WriteDisk(FCBBitMap->data, Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);    //Ð´ï¿½ï¿½FCBï¿½ï¿½bitmap
+    WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte); //Ð´ï¿½ï¿½DataBlockï¿½ï¿½bitmap
+    free(BlockBuff);
+    return fcbIndex;
 }
 
-
-FCBIndex CreateDirectory(string name, FCBIndex dir) {
-	return Create(name, dir, FileType::Directory);
+vector<FCBIndex> GetChildren(FCBIndex dir) {
+    vector<FCBIndex> ret;
+    uint8_t *blockBuff = (uint8_t *)malloc(Super.BlockSize);
+    BlockIndex block = 0;
+    FileControlBlock DirFCB, childs;
+    LoadFCB(dir, &DirFCB);
+    for (size_t i = 0; i < 10 && DirFCB.DirectBlock[i] != -1; i++) {
+        LoadBlock(DirFCB.DirectBlock[i], blockBuff);
+        for (FCBIndex *iter = (FCBIndex *)(blockBuff + sizeof(Block)); iter < (FCBIndex *)(blockBuff + Super.BlockSize); iter++) {
+            if (*iter == -1) {
+                continue;
+            }
+            ret.push_back(*iter);
+        }
+    }
+PrintDir_end:
+    free(blockBuff);
+    return ret;
 }
 
-FCBIndex CreateFile(string name, FCBIndex dir) {
-	return Create(name, dir, FileType::File);
-}
+FCBIndex CreateDirectory(string name, FCBIndex dir) { return Create(name, dir, FileType::Directory); }
 
+FCBIndex CreateFile(string name, FCBIndex dir) { return Create(name, dir, FileType::File); }
 
 bool DeleteFile(FCBIndex file) {
-	FileControlBlock thisFile;
-	LoadFCB(file, &thisFile);
-	uint8_t* blockBuff = (uint8_t*)malloc(Super.BlockSize);
-	if (thisFile.Type == FileType::File) {
-		vector<BlockIndex> blocks;
-		for (int i = 0; i <= 10; ++i) {
-			if (thisFile.DirectBlock[i] != -1) {
-				blocks.push_back(thisFile.DirectBlock[i]);
-			}
-		}
-		if (thisFile.Pointer != -1) {
-			blocks.push_back(thisFile.Pointer);
-			LoadBlock(thisFile.Pointer, blockBuff);
-			for (uint64_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(BlockIndex)) {
-				if (*(BlockIndex*)(blockBuff + pos) != -1) {
-					blocks.push_back(*(BlockIndex*)(blockBuff + pos));
-				}
-			}
-		}
-		//É¾³ýÎÄ¼þÊý¾Ý¿é
-		for (size_t i = 0; i < blocks.size(); i++)
-		{
-			DataBitMap->set(blocks[i], false);
-		}
-		//É¾³ýFCB
-		FCBBitMap->set(file, false);
-	}
-	else if (thisFile.Type == FileType::Directory) {
-		for (int i = 0; i <= 10; ++i) {
-			if (thisFile.DirectBlock[i] != -1) {
-				LoadBlock(thisFile.DirectBlock[i], blockBuff);
-				for (uint64_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(FCBIndex)) {
-					if (*(FCBIndex*)(blockBuff + pos) != -1) {
-						DeleteFile(*(FCBIndex*)(blockBuff + pos));
-					}
-				}
-			}
-		}
-	}
-	//É¾³ý¸¸Ä¿Â¼µÄ¼ÇÂ¼
-	FCBIndex parentIndex = thisFile.Parent;
-	FileControlBlock parentFCB;
-	LoadFCB(parentIndex, &parentFCB);
-	for (size_t i = 0; i < 10 && parentFCB.DirectBlock[i] != -1; i++)
-	{
-		LoadBlock(parentFCB.DirectBlock[i], blockBuff);
-		for (uint64_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(FCBIndex)) {
-			if (*(FCBIndex*)(blockBuff + pos) == file) {
-				*(FCBIndex*)(blockBuff + pos) = -1;
-				StoreBlock(parentFCB.DirectBlock[i], blockBuff);
-				//TEST £º Èç¹û¸ÃÄ¿Â¼¿éÎª¿Õ£¬ÔòÉ¾³ý´ËÄ¿Â¼¿é
-				for (uint64_t pos2 = sizeof(Block); pos2 < Super.BlockSize; pos2 += sizeof(FCBIndex)) {
-					if (*(FCBIndex*)(blockBuff + pos2) != -1) {
-						goto DeleteFile_end;
-					}
-				}
-				//É¾³ý¿ÕµÄÄ¿Â¼±í
-				DataBitMap->set(parentFCB.DirectBlock[i], false);
-				parentFCB.DirectBlock[i] = -1;
-				//DirectBlock½ô´Õ»¯
-				for (int j = i + 1; j < 10; j++)
-				{
-					parentFCB.DirectBlock[j - 1] = parentFCB.DirectBlock[j];
-				}
-				parentFCB.DirectBlock[9] = -1;
-				goto DeleteFile_end;
-			}
-		}
-	}
-
+    FileControlBlock thisFile;
+    LoadFCB(file, &thisFile);
+    uint8_t *blockBuff = (uint8_t *)malloc(Super.BlockSize);
+    if (thisFile.Type == FileType::File) {
+        vector<BlockIndex> blocks;
+        for (int i = 0; i <= 10; ++i) {
+            if (thisFile.DirectBlock[i] != -1) {
+                blocks.push_back(thisFile.DirectBlock[i]);
+            }
+        }
+        if (thisFile.Pointer != -1) {
+            blocks.push_back(thisFile.Pointer);
+            LoadBlock(thisFile.Pointer, blockBuff);
+            for (uint64_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(BlockIndex)) {
+                if (*(BlockIndex *)(blockBuff + pos) != -1) {
+                    blocks.push_back(*(BlockIndex *)(blockBuff + pos));
+                }
+            }
+        }
+        //É¾ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
+        for (size_t i = 0; i < blocks.size(); i++) {
+            DataBitMap->set(blocks[i], false);
+        }
+        //É¾ï¿½ï¿½FCB
+        FCBBitMap->set(file, false);
+    } else if (thisFile.Type == FileType::Directory) {
+        for (int i = 0; i <= 10; ++i) {
+            if (thisFile.DirectBlock[i] != -1) {
+                LoadBlock(thisFile.DirectBlock[i], blockBuff);
+                for (uint64_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(FCBIndex)) {
+                    if (*(FCBIndex *)(blockBuff + pos) != -1) {
+                        DeleteFile(*(FCBIndex *)(blockBuff + pos));
+                    }
+                }
+            }
+        }
+    }
+    //É¾ï¿½ï¿½ï¿½ï¿½Ä¿Â¼ï¿½Ä¼ï¿½Â¼
+    FCBIndex parentIndex = thisFile.Parent;
+    FileControlBlock parentFCB;
+    LoadFCB(parentIndex, &parentFCB);
+    for (size_t i = 0; i < 10 && parentFCB.DirectBlock[i] != -1; i++) {
+        LoadBlock(parentFCB.DirectBlock[i], blockBuff);
+        for (uint64_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(FCBIndex)) {
+            if (*(FCBIndex *)(blockBuff + pos) == file) {
+                *(FCBIndex *)(blockBuff + pos) = -1;
+                StoreBlock(parentFCB.DirectBlock[i], blockBuff);
+                // TEST ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Â¼ï¿½ï¿½Î?ï¿½Õ£ï¿½ï¿½ï¿½É¾ï¿½ï¿½ï¿½ï¿½Ä¿Â¼ï¿½ï¿½
+                for (uint64_t pos2 = sizeof(Block); pos2 < Super.BlockSize; pos2 += sizeof(FCBIndex)) {
+                    if (*(FCBIndex *)(blockBuff + pos2) != -1) {
+                        goto DeleteFile_end;
+                    }
+                }
+                //É¾ï¿½ï¿½ï¿½Õµï¿½Ä¿Â¼ï¿½ï¿½
+                DataBitMap->set(parentFCB.DirectBlock[i], false);
+                parentFCB.DirectBlock[i] = -1;
+                // DirectBlockï¿½ï¿½ï¿½Õ»ï¿½
+                for (int j = i + 1; j < 10; j++) {
+                    parentFCB.DirectBlock[j - 1] = parentFCB.DirectBlock[j];
+                }
+                parentFCB.DirectBlock[9] = -1;
+                goto DeleteFile_end;
+            }
+        }
+    }
 
 DeleteFile_end:
-	WriteDisk(FCBBitMap->data, Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);				//Ð´ÈëFCBµÄbitmap
-	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte);			//Ð´ÈëDataBlockµÄbitmap
+    WriteDisk(FCBBitMap->data, Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);    //Ð´ï¿½ï¿½FCBï¿½ï¿½bitmap
+    WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte); //Ð´ï¿½ï¿½DataBlockï¿½ï¿½bitmap
 
-	free(blockBuff);
-	return false;
+    free(blockBuff);
+    return false;
 }
 
-int64_t WriteFile(FCBIndex file, int64_t pos, int64_t len, uint8_t* buff)
-{
-	FileControlBlock ThisFileFCB;
-	LoadFCB(file, &ThisFileFCB);
-	if (pos > ThisFileFCB.Size) {
-		printf("Error:pos = %lld is larger than file's size = %lu.\n", pos, ThisFileFCB.Size);
-		return -1;
-	}
-	else if (pos < 0) {
-		printf("Error:pos = %lld should larger than or equal to 0.\n", pos);
-		return -1;
-	}
-	else if (len < 0) {
-		printf("Error:len = %lld should larger than or equal to 0.\n", len);
-		return -1;
-	}
-	uint64_t inBlockPos = pos;
-	uint64_t StartPos = 0;
-	uint8_t* blockBuff = (uint8_t*)malloc(Super.BlockSize);
+int64_t WriteFile(FCBIndex file, int64_t pos, int64_t len, uint8_t *buff) {
+    FileControlBlock ThisFileFCB;
+    LoadFCB(file, &ThisFileFCB);
+    if (pos > ThisFileFCB.Size) {
+        printf("Error:pos = %lld is larger than file's size = %lu.\n", pos, ThisFileFCB.Size);
+        return -1;
+    } else if (pos < 0) {
+        printf("Error:pos = %lld should larger than or equal to 0.\n", pos);
+        return -1;
+    } else if (len < 0) {
+        printf("Error:len = %lld should larger than or equal to 0.\n", len);
+        return -1;
+    }
+    uint64_t inBlockPos = pos;
+    uint64_t StartPos = 0;
+    uint8_t *blockBuff = (uint8_t *)malloc(Super.BlockSize);
 
-	FCBPointerManager PointerBlock;
-	PointerBlock.Load(file);
+    FilePointerReader PointerBlock;
+    PointerBlock.Load(file);
 
-	PointerBlock.FCB.Size = MAX(PointerBlock.FCB.Size, pos + len);
+    PointerBlock.FCB.Size = MAX(PointerBlock.FCB.Size, pos + len);
 
-	for (size_t PageNum = 0; PageNum < MAX_POINTER; PageNum++)
-	{
-		BlockIndex block = PointerBlock.ReadPage(PageNum, blockBuff);
-		if (block == -1) {//Ð´ÈëÆðµãÊÇÐÂµÄ¿é
-			goto WriteFile_CreateNew;
-		}
-		else if (inBlockPos < MAX_BLOCK_SPACE) {//Ð´ÈëÆðµãÊÇµ±Ç°¿é
-			if (inBlockPos + len <= MAX_BLOCK_SPACE) {//ÔÚ¿ÕÏ¶ÖÐ´æÏÂ
-				memcpy(blockBuff + inBlockPos, buff, len);
-				BlockSize(blockBuff) = MAX(BlockSize(blockBuff), inBlockPos + len);
-				StoreBlock(block, blockBuff);
-				goto WriteFile_end;
-			}
-			else {//´æ²»ÏÂ->ÌîÂú¿ÕÏ¶
-				memcpy(blockBuff + inBlockPos, buff, MAX_BLOCK_SPACE - inBlockPos);
-				BlockSize(blockBuff) = MAX_BLOCK_SPACE;
-				StoreBlock(block, blockBuff);
-				StartPos += MAX_BLOCK_SPACE - inBlockPos;//Ð´ÁËMAX_BLOCK_SPACE - inBlockPos¸ö×Ö½Ú
-				goto WriteFile_CreateNew;
-			}
+    for (size_t PageNum = 0; PageNum < MAX_POINTER; PageNum++) {
+        BlockIndex block = PointerBlock.ReadPage(PageNum, blockBuff);
+        if (block == -1) { //Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÂµÄ¿ï¿?
+            goto WriteFile_CreateNew;
+        } else if (inBlockPos < MAX_BLOCK_SPACE) {     //Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Çµï¿½Ç°ï¿½ï¿?
+            if (inBlockPos + len <= MAX_BLOCK_SPACE) { //ï¿½Ú¿ï¿½Ï¶ï¿½Ð´ï¿½ï¿½ï¿½
+                memcpy(blockBuff + inBlockPos, buff, len);
+                BlockSize(blockBuff) = MAX(BlockSize(blockBuff), inBlockPos + len);
+                StoreBlock(block, blockBuff);
+                goto WriteFile_end;
+            } else { //ï¿½æ²»ï¿½ï¿½->ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¶
+                memcpy(blockBuff + inBlockPos, buff, MAX_BLOCK_SPACE - inBlockPos);
+                BlockSize(blockBuff) = MAX_BLOCK_SPACE;
+                StoreBlock(block, blockBuff);
+                StartPos += MAX_BLOCK_SPACE - inBlockPos; //Ð´ï¿½ï¿½MAX_BLOCK_SPACE - inBlockPosï¿½ï¿½ï¿½Ö½ï¿½
+                goto WriteFile_CreateNew;
+            }
 
-		}
-		else {//Ð´ÈëÆðµã»¹ÔÚºóÃæ
-			inBlockPos -= BlockSize(blockBuff);
-		}
-	}
+        } else { //Ð´ï¿½ï¿½ï¿½ï¿½ã»¹ï¿½Úºï¿½ï¿½ï¿?
+            inBlockPos -= BlockSize(blockBuff);
+        }
+    }
 
 WriteFile_CreateNew:
-	//½«buff´ÓStartPos ~ lenÖ®¼äµÄ²¿·ÖÐ´ÈëÐÂ¿é
+    //ï¿½ï¿½buffï¿½ï¿½StartPos ~ lenÖ®ï¿½ï¿½Ä²ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Â¿ï¿?
 
-	while (StartPos < len)
-	{
-		if (len - StartPos >= MAX_BLOCK_SPACE) {//Ð´Âú±¾¿é
-			//pointerBlock.FCB.Size += MAX_BLOCK_SPACE;
-			BlockSize(blockBuff) = MAX_BLOCK_SPACE;
-			memcpy(blockBuff + sizeof(Block), buff + StartPos, MAX_BLOCK_SPACE);
-			PointerBlock.AddNewBlock(blockBuff);
-			StartPos += MAX_BLOCK_SPACE;
-		}
-		else {//»¹Ê£¿Õ¼ä
-			//pointerBlock.FCB.Size += (len - StartPos);
-			BlockSize(blockBuff) = len;
-			memcpy(blockBuff + sizeof(Block), buff + StartPos, len - StartPos);
-			PointerBlock.AddNewBlock(blockBuff);
-			StartPos += (len - StartPos);
-		}
-	}
+    while (StartPos < len) {
+        if (len - StartPos >= MAX_BLOCK_SPACE) { //Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+            // pointerBlock.FCB.Size += MAX_BLOCK_SPACE;
+            BlockSize(blockBuff) = MAX_BLOCK_SPACE;
+            memcpy(blockBuff + sizeof(Block), buff + StartPos, MAX_BLOCK_SPACE);
+            PointerBlock.AddNewBlock(blockBuff);
+            StartPos += MAX_BLOCK_SPACE;
+        } else { //ï¿½ï¿½Ê£ï¿½Õ¼ï¿½
+            // pointerBlock.FCB.Size += (len - StartPos);
+            BlockSize(blockBuff) = len;
+            memcpy(blockBuff + sizeof(Block), buff + StartPos, len - StartPos);
+            PointerBlock.AddNewBlock(blockBuff);
+            StartPos += (len - StartPos);
+        }
+    }
 
 WriteFile_end:
-	free(blockBuff);
-	StoreFCB(file, &PointerBlock.FCB);
-	return pos + len;
+    free(blockBuff);
+    StoreFCB(file, &PointerBlock.FCB);
+    return pos + len;
 }
 
-int64_t ReadFile(FCBIndex file, int64_t pos, int64_t len, uint8_t* buff)
-{
-	FileControlBlock ThisFileFCB;
-	LoadFCB(file, &ThisFileFCB);
-	if (pos + len > ThisFileFCB.Size) {
-		printf("Error:pos+len = %ld is larger than file's size = %lu.\n", pos + len, ThisFileFCB.Size);
-		return -1;
-	}
-	else if (pos < 0) {
-		printf("Error:pos = %ld should larger than or equal to 0.\n", pos);
-		return -1;
-	}
-	else if (len < 0) {
-		printf("Error:len = %ld should larger than or equal to 0.\n", len);
-		return -1;
-	}
-	uint64_t inBlockPos = pos;
-	uint64_t BytesToBeRead = len;
-	uint8_t* blockBuff = (uint8_t*)malloc(Super.BlockSize);
+int64_t ReadFile(FCBIndex file, int64_t pos, int64_t len, uint8_t *buff) {
+    FileControlBlock ThisFileFCB;
+    LoadFCB(file, &ThisFileFCB);
+    if (pos + len > ThisFileFCB.Size) {
+        printf("Error:pos+len = %ld is larger than file's size = %lu.\n", pos + len, ThisFileFCB.Size);
+        return -1;
+    } else if (pos < 0) {
+        printf("Error:pos = %ld should larger than or equal to 0.\n", pos);
+        return -1;
+    } else if (len < 0) {
+        printf("Error:len = %ld should larger than or equal to 0.\n", len);
+        return -1;
+    }
+    uint64_t inBlockPos = pos;
+    uint64_t BytesToBeRead = len;
+    uint8_t *blockBuff = (uint8_t *)malloc(Super.BlockSize);
 
-	FCBPointerManager pointerBlock;
-	pointerBlock.Load(file);
-	size_t PageNum;
-	for (PageNum = 0; PageNum < MAX_POINTER; PageNum++)
-	{
-		BlockIndex block = pointerBlock.ReadPage(PageNum, blockBuff);
+    FilePointerReader pointerBlock;
+    pointerBlock.Load(file);
+    size_t PageNum;
+    for (PageNum = 0; PageNum < MAX_POINTER; PageNum++) {
+        BlockIndex block = pointerBlock.ReadPage(PageNum, blockBuff);
 
-		if (inBlockPos < MAX_BLOCK_SPACE) {//´Ó´Ë¿é¿ªÊ¼¶Á
-			goto ReadFile_StartToRead;
-		}
-		else {//¶ÁÈ¡Æðµã»¹ÔÚºóÃæ
-			inBlockPos -= BlockSize(blockBuff);
-		}
-	}
+        if (inBlockPos < MAX_BLOCK_SPACE) { //ï¿½Ó´Ë¿é¿ªÊ¼ï¿½ï¿½
+            goto ReadFile_StartToRead;
+        } else { //ï¿½ï¿½È¡ï¿½ï¿½ã»¹ï¿½Úºï¿½ï¿½ï¿?
+            inBlockPos -= BlockSize(blockBuff);
+        }
+    }
 
 ReadFile_StartToRead:
-	//´ÓÎÄ¼þµÄµÚPageNum¿éinBlockOffset×Ö½Ú¿ªÊ¼£¬¶ÁÈ¡BytesToBeRead×Ö½ÚµÄÊý¾Ý
+    //ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½Äµï¿½PageNumï¿½ï¿½inBlockOffsetï¿½Ö½Ú¿ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½È¡BytesToBeReadï¿½Ö½Úµï¿½ï¿½ï¿½ï¿½ï¿½
 
-	for (; BytesToBeRead > 0; ++PageNum)
-	{
-		BlockIndex block = pointerBlock.ReadPage(PageNum, blockBuff);
-		if (BytesToBeRead >= BlockSize(blockBuff)) {//¶ÁÍêÕû¿é
-			memcpy(buff + (len - BytesToBeRead), blockBuff + sizeof(Block), BlockSize(blockBuff));
-			BytesToBeRead -= BlockSize(blockBuff);
-		}
-		else {//¶ÁÈ¡Ò»²¿·Ö
-			memcpy(buff + (len - BytesToBeRead), blockBuff + sizeof(Block), BytesToBeRead);
-			BytesToBeRead -= BytesToBeRead;
-		}
-	}
+    for (; BytesToBeRead > 0; ++PageNum) {
+        BlockIndex block = pointerBlock.ReadPage(PageNum, blockBuff);
+        if (BytesToBeRead >= BlockSize(blockBuff)) { //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+            memcpy(buff + (len - BytesToBeRead), blockBuff + sizeof(Block), BlockSize(blockBuff));
+            BytesToBeRead -= BlockSize(blockBuff);
+        } else { //ï¿½ï¿½È¡Ò»ï¿½ï¿½ï¿½ï¿½
+            memcpy(buff + (len - BytesToBeRead), blockBuff + sizeof(Block), BytesToBeRead);
+            BytesToBeRead -= BytesToBeRead;
+        }
+    }
 
 ReadFile_end:
-	free(blockBuff);
-	StoreFCB(file, &pointerBlock.FCB);
-	return pos + len;
+    free(blockBuff);
+    StoreFCB(file, &pointerBlock.FCB);
+    return pos + len;
 }
