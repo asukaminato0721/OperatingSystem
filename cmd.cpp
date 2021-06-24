@@ -13,6 +13,7 @@ using namespace std;
 #define INODESIZE 128 // （fcb）i节点的大小
 #define INODENUM Super.FCBNum   // i节点的数目
 #define FILENUM 8     // 打开文件表的数目
+#define USERLEN 16
 
 /*
 super.BlockNum
@@ -25,15 +26,15 @@ typedef FileControlBlock Inode; // fcb别名Inode
 // 用户(20B)
 typedef struct
 {
-    char user_name[10]; // 用户名
-    char password[10];  // 密码
+    char user_name[USERLEN]; // 用户名
+    char password[USERLEN];  // 密码
 } User;
 
 // 打开文件表(16B)
 typedef struct
 {
-    short inum;         // i节点号
-    char file_name[10]; // 文件名
+    FileControlBlock inum;         // i节点号
+    char file_name[32]; // 文件名
     short mode;         // 读写模式(1:read, 2:write,
                         //         3:read and write)
     short offset;       // 偏移量
@@ -44,7 +45,7 @@ vector<string> vc_of_str;
 string s1, s2;
 int inum_cur;                                                                                                                                                   // 当前目录
 char temp[2 * BLKSIZE];                                                                                                                                         // 缓冲区
-User user;                                                                                                                                                      // 当前的用户
+User user;     //用于缓存内存中的用户                                                                                                                                                 // 当前的用户
 char bitmap[BLKNUM];                                                                                                                                            // 位图数组
 Inode inode_array[INODENUM];                                                                                                                                    // i节点数组
 File_table file_array[FILENUM];                                                                                                                                 // 打开文件表数组
@@ -57,17 +58,17 @@ void login()
 {
     char *p;
     int flag;
-    char user_name[10];
-    char password[10];
+    char user_name[USERLEN];
+    char password[USERLEN];
     char file_name[10] = "user.txt";
     char choice; //选择是否（y/n）
     do
     {
         printf("login:");
-        gets_s(user_name);
+        gets_s(user_name);//用户输入用户名，回显
         printf("password:");
         p = password;
-        while (*p = _getch())
+        while (*p = _getch())//输入密码，不回显
         {
             if (*p == 0x0d) //当输入回车键时，0x0d为回车键的ASCII码
             {
@@ -78,11 +79,11 @@ void login()
             p++;
         }
         flag = 0;
-        if ((fp = fopen(file_name, "r+")) == NULL)
+        if ((fp = fopen(file_name, "r+")) == NULL)//读取用户信息文件
         {
             printf("\nCan't open file %s.\n", file_name);
             printf("This filesystem is not exist now, it will be create~~~\n");
-            FormatDisk();
+            format();
             login();
         }
         while (!feof(fp))
@@ -93,6 +94,8 @@ void login()
             {
                 fclose(fp);
                 printf("\n");
+                CreateDirectory(user.user_name, 0);
+                Find(0, user.user_name);
                 return; //登陆成功，直接跳出登陆函数
             }
             // 已经存在的用户, 但密码错误
@@ -544,12 +547,27 @@ void format() {
     printf("Are you sure format the fileSystem?(Y/N)?");
     scanf("%c", &choice);
     if ((choice == 'y') || (choice == 'Y')) {
-        //格式化磁盘
+        //调用底层函数，格式化磁盘
         FormatDisk();
-        //清除用户
-
+        //清除用户信息
+        fp = fopen("user.txt", "w+");//以w+方式，若存在则清空用户信息文件
+        if (fp == NULL)
+        {
+            printf("Can't create file %s\n", "user.txt");
+            exit(-1);
+        }
+        fclose(fp);
+        printf("Filesystem created successful.Please first login!\n");
     }
 
+}
+
+//清空内存中存在的用户名
+void free_user()
+{
+    int i;
+    for (i = 0; i < USERLEN; i++)//循环
+        user.user_name[i] = '\0';
 }
 
 void info()
