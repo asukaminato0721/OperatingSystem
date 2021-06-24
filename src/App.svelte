@@ -14,6 +14,19 @@
       this.name = name;
       this.children = [];
     }
+    child_dir(name: string): TreeNode {
+      console.log(name);
+      console.log(this.children);
+      // @ts-ignore
+      return this.children.find(
+        (x) => x.name === name && x instanceof TreeNode
+      );
+    }
+    child_file(name: string) {
+      return this.children.find(
+        (x) => x.name === name && x instanceof FileNode
+      );
+    }
   }
   let 当前路径 = () => 路径历史[路径历史.length - 1].children;
   let logo = String.raw`
@@ -25,10 +38,46 @@
 `;
   let 文件树 = new TreeNode("~");
   let 路径历史: TreeNode[] = [文件树];
-  let 前缀;
+
+  const cd = (path: string) => {
+    // 检查是否是从根目录或者同一文件夹
+    // 最外层修改全局变量
+    // 中间层测试能否返回
+    // 内层测试每一层是否能到达
+    let 走向路径 = (目前地址: TreeNode, 文件夹序列: string[]) => {
+      let temp = 路径历史;
+      let next: string;
+      while (文件夹序列.length > 0) {
+        console.log(`文件夹序列 = ${文件夹序列}`);
+        let next = 文件夹序列.shift();
+        if (next !== "..") {
+          目前地址 = 目前地址.child_dir(next);
+          if (typeof 目前地址 === "undefined") {
+            console.log("can't get to");
+            throw new Error("can't get to");
+          } else {
+            temp.push(目前地址);
+          }
+        } else {
+          if (temp.length > 1) {
+            temp.pop();
+            目前地址 = temp[temp.length - 1];
+          }
+        }
+      }
+      return temp;
+    };
+    let 文件夹序列 = path.split("/");
+    console.log(文件夹序列);
+    try {
+      路径历史 = 走向路径(路径历史[路径历史.length - 1], 文件夹序列);
+      return "";
+    } catch {
+      return "无此目录";
+    }
+  };
   $: {
     路径历史 = 路径历史;
-    前缀 = 路径历史.map((x) => x.name).join("/");
     console.log(路径历史);
   }
   let 指令映射 = new Map([
@@ -64,7 +113,7 @@
             l--;
           }
           return "";
-        } else {
+        } else if (!path.includes("/")) {
           let 下一站 = 当前路径().find(
             (x) => x instanceof TreeNode && x.name === path
           );
@@ -75,6 +124,10 @@
           } else {
             return "can't cd to path";
           }
+        } else {
+          console.log(path);
+          cd(path);
+          return "";
         }
       },
     ],
@@ -178,6 +231,11 @@
 </script>
 
 <svelte:window on:keydown={按键按下} />
+<a
+  target="_blank"
+  href="https://github.com/wuyudi/OperatingSystem/tree/online-demo#%E4%B8%80%E4%B8%AA-shell-%E7%9A%84%E5%9C%A8%E7%BA%BF%E6%A8%A1%E6%8B%9F%E5%99%A8"
+  >帮助</a
+>
 <div>
   <textarea
     style="font-family: Consolas;height: 10rem;width: 80rem;border-color: transparent; "
@@ -199,5 +257,5 @@
   {@html 指令结果}
 </div>
 {#each 显示的指令历史 as i}
-  <div>{JSON.stringify(i)}</div>
+  <!-- <div>{JSON.stringify(i)}</div> -->
 {/each}

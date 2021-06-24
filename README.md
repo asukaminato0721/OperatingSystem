@@ -11,6 +11,7 @@ online-demo
 ```bash
 cd 目录
 cd 任意个点
+cd folder1/folder2/folder3/../folder4/..
 mkdir folder1 folder2 ...
 cat file
 echo content > file
