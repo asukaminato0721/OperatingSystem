@@ -1,24 +1,18 @@
 #include "FileSystem.h"
 #include <bits/stdc++.h>
-using namespace std;
 #include <stdio.h>
 #include <stdlib.h>
 #include <conio.h>
 #include <string.h>
 #include <iostream>
 #include <vector>
+using namespace std;
 
 #define BLKSIZE Super.BlockSize  // 数据块的大小
 #define BLKNUM Super.BlockNum    // 数据块的块数
 #define INODESIZE 128 // （fcb）i节点的大小
 #define INODENUM Super.FCBNum   // i节点的数目
 #define USERLEN 10          //设置用户名和密码最大长度
-
-/*
-Super.BlockNum
-Super.FCBNum
-Super.DataBlockNum
-*/
 
 typedef FileControlBlock Inode; // fcb别名Inode
 
