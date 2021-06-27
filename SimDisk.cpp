@@ -7,62 +7,39 @@
 #include "FileSystem.h"
 using namespace std;
 
-inline uint16_t &xxx(uint8_t *blockBuff) { return ((Block *)blockBuff)->Size; }
+#define TestSize 3000
 
 int main() {
-    initDisk();
-    FormatDisk(1024);
-    auto dir1 = CreateDirectory("Dir1", 0);
-    auto dir2 = CreateDirectory("Dir2", 0);
-    auto dir3 = CreateDirectory("Dir3", dir2);
-    auto dir4 = CreateDirectory("Dir4", dir3);
-    CreateFile("File1", 0);
-    CreateFile("File2", 0);
-    CreateFile("File3", 0);
-    CreateFile("File4", 0);
-    CreateFile("File5", 0);
-    CreateFile("File6", 0);
-    CreateFile("File7", 0);
-    CreateFile("File8", 0);
-    auto data2 = CreateFile("Data2", dir1);
 
-    // for (size_t i = 0; i < 5000; i++)
-    //{
-    //	CreateDirectory((string("Test") + to_string(i)).c_str(), 1);
-    //}
-    uint8_t *buff = (uint8_t *)malloc(2000);
+	initDisk();
+	LoadDisk();
+	PrintDir(0);
+	return 0;
 
-    PrintDiskInfo();
-    printf("\n\n");
-    PrintDir(0);
+	uint8_t testBuff[TestSize];
+	uint8_t testBuff2[TestSize];
+	ifstream fs("C:\\Users\\Azura\\Desktop\\VNS\\VNS - PURE.cpp");
+	fs.read((char*)testBuff, 10);
+	fs.read((char*)testBuff, TestSize);
 
-    DeleteFile(data2);
 
-    PrintDir(0);
-    PrintDir(dir1);
-    printf("\n\n");
+	FormatDisk(1024);
+	auto dir1 = CreateDirectory("Dir1", 0);
+	auto dir2 = Create("Dir2", 0, FileType::Directory);
+	auto file1 = Create("File1", 0, FileType::File);
+	auto file2 = Create("File1", 0, FileType::File);
 
-    PrintDiskInfo();
-    printf("\n\n");
-    printf("\n\n");
-    printf("\n\n");
-    printf("\n\n");
-    printf("\n\n");
-    printf("\n\n");
-    auto file = CreateFile("TestFile", 0);
-    PrintFileInfo(file);
+	WriteFile(file1, 0, 2000, testBuff);
 
-    WriteFile(file, 0, 2000, (uint8_t *)"hello world!");
-    WriteFile(file, 1010, 20, (uint8_t *)"hello world!");
-    PrintFileInfo(file);
 
-    ReadFile(file, 1010, 20, buff);
-    printf("########################\n%s\n########################\n", buff);
+	ReadFile(file1, 0, 2000, testBuff2);
 
-    // printf("pos = %lld\n", WriteFile(file, 0, 1021, (uint8_t*)"hello world!"));
-    // WriteFile(file, 0, 128, (uint8_t*)"hello world!");
-    PrintFileInfo(file);
+	PrintDir(0);
+	PrintDiskInfo();
+	PrintInfo(file1);
+	PrintInfo(0);
 
-    PrintDir(0);
-    PrintDiskInfo();
+	LoadDisk();
+	cout << "END" << endl;
+
 }
