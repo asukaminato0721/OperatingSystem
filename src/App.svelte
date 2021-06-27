@@ -9,26 +9,19 @@
   }
   class TreeNode {
     name: string;
-    children: (FileNode | TreeNode)[];
+    dir_children: {
+      [key: string]: TreeNode;
+    };
+    file_children: {
+      [key: string]: FileNode;
+    };
     constructor(name: string) {
       this.name = name;
-      this.children = [];
-    }
-    child_dir(name: string): TreeNode {
-      console.log(name);
-      console.log(this.children);
-      // @ts-ignore
-      return this.children.find(
-        (x) => x.name === name && x instanceof TreeNode
-      );
-    }
-    child_file(name: string) {
-      return this.children.find(
-        (x) => x.name === name && x instanceof FileNode
-      );
+      this.dir_children = {};
+      this.file_children = {};
     }
   }
-  let 当前路径 = () => 路径历史[路径历史.length - 1].children;
+
   let logo = String.raw`
              _ _                      _          _ _ 
   ___  _ __ | (_)_ __   ___       ___| |__   ___| | |
@@ -38,35 +31,34 @@
 `;
   let 文件树 = new TreeNode("~");
   let 路径历史: TreeNode[] = [文件树];
-
+  const 目前位置 = () => 路径历史[路径历史.length - 1];
+  let 走向路径 = (目前地址: TreeNode, 文件夹序列: string[]) => {
+    let temp = 路径历史.slice();
+    while (文件夹序列.length > 0) {
+      console.log(`文件夹序列 = ${文件夹序列}`);
+      let next = 文件夹序列.shift();
+      if (next !== "..") {
+        目前地址 = 目前地址.dir_children[next];
+        if (typeof 目前地址 === "undefined") {
+          console.log("can't get to");
+          throw new Error("can't get to");
+        } else {
+          temp.push(目前地址);
+        }
+      } else {
+        if (temp.length > 1) {
+          temp.pop();
+          目前地址 = temp[temp.length - 1];
+        }
+      }
+    }
+    return temp;
+  };
   const cd = (path: string) => {
     // 检查是否是从根目录或者同一文件夹
     // 最外层修改全局变量
     // 中间层测试能否返回
     // 内层测试每一层是否能到达
-    let 走向路径 = (目前地址: TreeNode, 文件夹序列: string[]) => {
-      let temp = 路径历史;
-      let next: string;
-      while (文件夹序列.length > 0) {
-        console.log(`文件夹序列 = ${文件夹序列}`);
-        let next = 文件夹序列.shift();
-        if (next !== "..") {
-          目前地址 = 目前地址.child_dir(next);
-          if (typeof 目前地址 === "undefined") {
-            console.log("can't get to");
-            throw new Error("can't get to");
-          } else {
-            temp.push(目前地址);
-          }
-        } else {
-          if (temp.length > 1) {
-            temp.pop();
-            目前地址 = temp[temp.length - 1];
-          }
-        }
-      }
-      return temp;
-    };
     let 文件夹序列 = path.split("/");
     console.log(文件夹序列);
     try {
@@ -84,21 +76,22 @@
     [
       "ls",
       (args: string[]) => {
-        return 当前路径()
-          .map(
-            (child) =>
-              "<div>" +
-              child.name +
-              "   " +
-              (child instanceof TreeNode ? "文件夹" : "文件" + "</div>")
-          )
-          .join(" ");
+        return (
+          Object.keys(目前位置().dir_children)
+            .map((child) => `<div> ${child}  文件夹</div>`)
+            .join(" ") +
+          Object.keys(目前位置().file_children)
+            .map((child) => `<div> ${child}  文件</div>`)
+            .join(" ")
+        );
       },
     ],
     [
       "mkdir",
       (name: string[]) => {
-        当前路径().push(...name.map((x) => new TreeNode(x)));
+        name.map(
+          (name) => (目前位置().dir_children[name] = new TreeNode(name))
+        );
         return "";
       },
     ],
@@ -114,10 +107,8 @@
           }
           return "";
         } else if (!path.includes("/")) {
-          let 下一站 = 当前路径().find(
-            (x) => x instanceof TreeNode && x.name === path
-          );
-          if (typeof 下一站 !== "undefined" && 下一站 instanceof TreeNode) {
+          let 下一站 = 目前位置().dir_children[path];
+          if (typeof 下一站 !== "undefined") {
             路径历史.push(下一站);
             console.log("新建成功");
             return "";
@@ -134,7 +125,7 @@
     [
       "touch",
       (args: string[]) => {
-        当前路径().push(...args.map((x) => new FileNode(x)));
+        args.map((arg) => (目前位置().file_children[arg] = new FileNode(arg)));
         return "创建完成";
       },
     ],
@@ -142,11 +133,8 @@
       "cat",
       (args: string[]) => {
         let arg = args[0];
-        let 文件 = 当前路径().find(
-          (x) => x.name === arg && x instanceof FileNode
-        );
-        if (typeof 文件 !== "undefined" && 文件 instanceof FileNode) {
-          return 文件.content;
+        if (目前位置().file_children.hasOwnProperty(arg)) {
+          return 目前位置().file_children[arg].content;
         } else {
           return `cat: ${arg}: 没有那个文件`;
         }
@@ -161,33 +149,54 @@
       (args: string[]) => {
         let 写入内容 = args[0];
         let 目标文件 = args[2];
-        let 文件 = 当前路径().find(
-          (x) => x.name === 目标文件 && x instanceof FileNode
-        );
-        if (typeof 文件 === "undefined") {
-          当前路径().push(new FileNode(目标文件, 写入内容));
+        let 文件 = 目前位置().file_children[目标文件];
+        if (目前位置().file_children.hasOwnProperty(目标文件)) {
+          目前位置().file_children[目标文件] = new FileNode(目标文件, 写入内容);
           return "";
         }
-        if (文件 instanceof FileNode) {
-          if (args[1] === ">") {
-            文件.content = 写入内容;
-            return "";
-          }
-          if (args[1] === ">>") {
-            文件.content += 写入内容;
-            return "";
-          }
+        if (args[1] === ">") {
+          文件.content = 写入内容;
+          return "写入成功";
         }
+        if (args[1] === ">>") {
+          文件.content += 写入内容;
+          return "追加成功";
+        }
+      },
+    ],
+    [
+      "rmdir",
+      (args: string[]) => {
+        [...new Set(args)].map((arg) => delete 目前位置().dir_children[arg]);
+        return "删除成功";
       },
     ],
     [
       "rm",
       (args: string[]) => {
-        let set = new Set(args);
-        路径历史[路径历史.length - 1].children = 当前路径().filter(
-          (x) => !set.has(x.name)
-        );
+        [...new Set(args)].map((arg) => delete 目前位置().file_children[arg]);
         return "删除成功";
+      },
+    ],
+    [
+      "cp",
+      (args: string[]) => {
+        let from = args[0].split("/");
+        let 源文件名 = from[from.length - 1];
+        let to = args[1].split("/");
+        let 终点文件名 = to[to.length - 1];
+        let 起点文件夹 = 走向路径(目前位置(), from.slice(0, -1));
+        let 中转站 = 起点文件夹[起点文件夹.length - 1].file_children[源文件名];
+        if (typeof 中转站 === "undefined") {
+          return "无此文件";
+        }
+        console.log("复制成功");
+        console.log(`复制成功 后 目前位置 ${JSON.stringify(目前位置())}`);
+        let 终点文件夹 = 走向路径(目前位置(), to.slice(0, -1));
+
+        终点文件夹[终点文件夹.length - 1].file_children[终点文件名] =
+          new FileNode(终点文件名, 中转站.content);
+        return "";
       },
     ],
   ]);
@@ -257,5 +266,5 @@
   {@html 指令结果}
 </div>
 {#each 显示的指令历史 as i}
-  <!-- <div>{JSON.stringify(i)}</div> -->
+  <div>{JSON.stringify(i)}</div>
 {/each}
