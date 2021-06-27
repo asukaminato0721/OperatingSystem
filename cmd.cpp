@@ -12,13 +12,12 @@ using namespace std;
 #define BLKNUM Super.BlockNum    // 数据块的块数
 #define INODESIZE 128 // （fcb）i节点的大小
 #define INODENUM Super.FCBNum   // i节点的数目
-#define FILENUM 8     // 打开文件表的数目
-#define USERLEN 10
+#define USERLEN 10          //设置用户名和密码最大长度
 
 /*
-super.BlockNum
-super.FCBNum
-super.DataBlockNum
+Super.BlockNum
+Super.FCBNum
+Super.DataBlockNum
 */
 
 typedef FileControlBlock Inode; // fcb别名Inode
@@ -30,26 +29,17 @@ typedef struct
     char password[USERLEN];  // 密码
 } User;
 
-// 打开文件表(16B)
-typedef struct
-{
-    FileControlBlock inum;         // i节点号
-    char file_name[32]; // 文件名
-    short mode;         // 读写模式(1:read, 2:write,
-                        //         3:read and write)
-    short offset;       // 偏移量
-} File_table;
 
 char choice;
 vector<string> vc_of_str;
 string s1, s2;
-int inum_cur;                                                                                                                                                   // 当前目录
-char temp[2 * BLKSIZE];                                                                                                                                         // 缓冲区
+FCBIndex inum_cur;   //当前文件夹FCB号                                                                                                                                                   // 当前目录
+char temp[2 * BLKSIZE];  //写入缓冲区                                                                                                                                       // 缓冲区
 User user;     //用于缓存内存中的用户                                                                                                                                                 // 当前的用户
-char bitmap[BLKNUM];                                                                                                                                            // 位图数组
-Inode inode_array[INODENUM];                                                                                                                                    // i节点数组
-File_table file_array[FILENUM];                                                                                                                                 // 打开文件表数组
-char image_name[10] = "hd.dat";                                                                                                                                 // 文件系统名称
+//char bitmap[BLKNUM];                                                                                                                                            // 位图数组
+//Inode inode_array[INODENUM];                                                                                                                                    // i节点数组
+                                                                                                                               // 打开文件表数组
+//char image_name[10] = "hd.dat";                                                                                                                                 // 文件系统名称
 FILE *fp;                                                                                                                                                       // 打开文件指针
 vector<string> Commands = {"help", "cd", "ls", "mkdir", "touch", "open", "cat", "vi", "close", "rm", "su", "clear", "format", "exit", "rmdir", "info", "copy"}; // 17个
 
@@ -135,8 +125,8 @@ void login()
     }
 }
 
+//功能: 切换当前用户包含了login和logout
 void su(string user_name) {//待修改
-    /*功能: 切换当前用户(logout)*/
     char* p;
     int flag;
     //string user_name;
@@ -163,6 +153,7 @@ void su(string user_name) {//待修改
                 !strcmp(user.password, password)) {
                 fclose(fp);
                 printf("\n");
+                cd(user_name);//进入用户文件夹
                 return;     //登陆成功，直接跳出登陆函数
             }
             // 已经存在的用户, 但密码错误
@@ -183,12 +174,8 @@ void su(string user_name) {//待修改
 //初始化
 void init()
 {
-    int i;
     // 当前目录为根目录
     inum_cur = 0;
-    // 初始化打开文件表
-    for (i = 0; i < FILENUM; i++)
-        file_array[i].inum = -1;
 }
 
 //设置文件路径，用于回显
@@ -438,18 +425,34 @@ void ls(string path)   // path为空则列出当前文件夹下的全部子文件，不为空则列出pa
 //cmd创建文件函数，在当前目录下创建文件夹
 void mkdir()
 {
-    int i;
     if (s2.empty())
     {
         cout << "Please input directery name" << endl;
         return;
     }
-    else
-    {
-        CreateDirectory(s2, inum_cur);//调用底层函数创建
+    int i, temp_cur;
+    string temps1, temps2;
+    if (s2.find('/') != -1) {  // 要创建的文件夹不在当前目录下，而是在路径中的指定文件下
+        temps1 = s2.substr(0, s2.find_last_of('/') + 1);
+        temps2 = s2.substr(s2.find_last_of('/') + 1);
+        s2 = temps1;
+        temp_cur = readby(temps1);
+        if (temp_cur == -1) {
+            printf("No Such Directory\n");
+        }
+    }
+    else {
+        temps2 = s2;
+        temp_cur = inum_cur;
+    }
+    FCBIndex index = CreateFile(s2, temp_cur);
+    if (index != -1) {
+        printf("Create Directory Successfully!\n");
+    }
+    else {
+        printf("Failed!\n");
     }
 }
-
 
 // 功能: 在当前目录下创建文件(creat file1)
 void touch()
@@ -560,7 +563,6 @@ void vi() {
     }
 }
 
-
 // 功能: 删除文件
 void rm(void)
 {
@@ -581,7 +583,7 @@ void rm(void)
 	}
     FCBIndex file_cur = Find(temp_cur,temps2);
 	bool suc = DeleteFile(file_cur);
-    if(suc){
+    if(suc!=-1){
         printf("Delete Successfully!\n");
     }eles{
         printf("Delete Failed!\n");
@@ -671,9 +673,8 @@ void vi() {
 	}
 }
 
-
-// 功能: 删除文件
-void rm(void)
+// 功能: 删除文件夹
+void rmdir(void)
 {
 	if (s2.length() == 0) {
 		printf("This file doesn't exist.\n");
@@ -692,11 +693,22 @@ void rm(void)
 	}
 	FCBIndex file_cur = Find(temp_cur, temps2);
 	bool suc = DeleteFile(file_cur);
-	if (suc) {
+	if (suc!=-1) {
 		printf("Delete Successfully!\n");
 	}eles{
 		printf("Delete Failed!\n");
 	}
+}
+
+// 功能: 退出文件系统(quit)
+void quit()
+{
+    char choice;
+    printf("Do you want to exist(y/n):");
+    scanf("%c", &choice);
+    gets_s(temp);
+    if ((choice == 'y') || (choice == 'Y'))
+        exit(-1);
 }
 
 //cmd下的format函数，包括用户的的格式化
@@ -730,6 +742,12 @@ void free_user()
 void info()
 {
     PrintDiskInfo();
+}
+
+//copy a-b 新建b文件并复制a文件内容，待修复
+void copy(string path) {
+
+
 }
 
 // 功能: 显示错误
@@ -797,13 +815,13 @@ void command(void)
             quit();
             break;
         case 14:
-            rmdir();
+            rmdir();//删除文件夹
             break;
         case 15:
             info();
             break;
         case 16:
-            copy();
+            copy(s2);
             break;
         case 17:
             errcmd();
