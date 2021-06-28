@@ -16,21 +16,6 @@ using namespace std;
 typedef int32_t BlockIndex;
 typedef int32_t FCBIndex;
 
-/*
- * |--------------------------------Disk-------------------------------|
- * |---Super Block---|--Bitmap--|---FCBS---|---------Data Block--------|
- *
- * [FCBS] : |FileControlBlock1|FileControlBlock2|FileControlBlock3|...
- *
- *
- * super Block 1 Block
- * Bitmap
- * FCBS
- *
- */
-
-
-
 class Access {
 public:
 	static uint8_t  None;

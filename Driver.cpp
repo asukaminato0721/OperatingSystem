@@ -10,6 +10,16 @@ fstream Disk;
 
 bool initDisk() {
 	Disk.open("./SimDisk.disk", ios::in | ios::out | ios::binary);
+	if (Disk.is_open() == false) {
+		Disk.open("./SimDisk.disk", ios::out | ios::binary);
+		char init[1 << 10];
+		for (size_t i = 0; i < Size / (1 << 10); i ++)
+		{
+			Disk.write(init, (1 << 10));
+		}
+		Disk.close();
+	}
+	Disk.open("./SimDisk.disk", ios::in | ios::out | ios::binary);
 	return true;
 	//Disk = (uint8_t *)malloc(sizeof(uint8_t) * Size);
 	//if (Disk == NULL) {

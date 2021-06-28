@@ -15,8 +15,9 @@ FCBIndex workDir = 0;
 
 int main() {
 	initDisk();
-	LoadDisk();
-	//FormatDisk(4 * 1 << 10);
+	if (LoadDisk() == false) {
+		FormatDisk(4 * 1 << 10);
+	}
 
 
 	PrintDiskInfo();
