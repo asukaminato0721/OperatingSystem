@@ -8,7 +8,7 @@
 #include <vector>
 using namespace std;
 
-#define BLKSIZE Super.BlockSize  // 数据块的大小
+#define BLKSIZE 1024  // 数据块的大小
 #define BLKNUM Super.BlockNum    // 数据块的块数
 #define INODESIZE 128 // （fcb）i节点的大小
 #define INODENUM Super.FCBNum   // i节点的数目
@@ -28,19 +28,19 @@ char choice;
 vector<string> vc_of_str;
 string s1, s2;
 FCBIndex inum_cur;   //当前文件夹FCB号                                                                                                                                                   // 当前目录
-char temp[2 * BLKSIZE];  //写入缓冲区                                                                                                                                       // 缓冲区
+char temp[10 * BLKSIZE];  //写入缓冲区                                                                                                                                       // 缓冲区
 User user;     //用于缓存内存中的用户                                                                                                                                                 // 当前的用户
 //char bitmap[BLKNUM];                                                                                                                                            // 位图数组
 //Inode inode_array[INODENUM];                                                                                                                                    // i节点数组
                                                                                                                                // 打开文件表数组
 //char image_name[10] = "hd.dat";                                                                                                                                 // 文件系统名称
-FILE *fp;                                                                                                                                                       // 打开文件指针
-vector<string> Commands = {"help", "cd", "ls", "mkdir", "touch", "open", "cat", "vi", "close", "rm", "su", "clear", "format", "exit", "rmdir", "info", "copy"}; // 17个
+FILE* fp;                                                                                                                                                       // 打开文件指针
+vector<string> Commands = { "help", "cd", "ls", "mkdir", "touch", "open", "cat", "vi", "close", "rm", "su", "clear", "format", "exit", "rmdir", "info", "copy" }; // 17个
 
 /*功能: 用户登陆，如果是新用户则创建用户*/
 void login()
 {
-    char *p;
+    char* p;
     int flag;
     char user_name[USERLEN];
     char password[USERLEN];
@@ -181,18 +181,18 @@ void pathset()
     else
     {
         FCBIndex temp = inum_cur;
-        FileControlBlock *fcb;
+        FileControlBlock* fcb;
         while (temp != 0)
         {
-            FileInfo(temp, &fcb);//首次依据当前FCB号
+            FileInfo(temp, fcb);//首次依据当前FCB号
             s = fcb->Name + s;
             s = '/' + s;
             temp = fcb->Parent;
         }
     }
     cout << user.user_name << "@"
-         << "8080"
-         << ":~" << s << "# ";
+        << "8080"
+        << ":~" << s << "# ";
 }
 
 /*功能: 显示帮助命令*/
@@ -311,7 +311,7 @@ void cd(string path)
     int temp_cur;
     if (path.empty())
     {
-        printf('command error!\n');
+        printf("command error!\n");
         return;
     }
     else
@@ -369,9 +369,9 @@ int readby(string path)
         }
         */
         temp_cur = Find(inum_cur, v[0]); // 返回上一级目录的目录号
-        if(temp_cur==0){
-            printf('cd failed!');
-            temp_cur=  inum_cur;
+        if (temp_cur == 0) {
+            printf("cd failed!");
+            temp_cur = inum_cur;
         }
     }
     else
@@ -408,7 +408,7 @@ void ls(string path)   // path为空则列出当前文件夹下的全部子文件，不为空则列出pa
     if (temp_cur != -1)
     {
         vector<FCBIndex> v = GetChildren(temp_cur);
-	    printf("%12s | %12s | %6s | % 10s\n", "Name", "Size", "FCB", "Physical Address");
+        printf("%12s | %12s | %6s | % 10s\n", "Name", "Size", "FCB", "Physical Address");
         for (unsigned int count = 0; count < v.size(); count++)
         {
             PrintDir(v[count]);
@@ -451,107 +451,113 @@ void mkdir()
 // 功能: 在当前目录下创建文件(creat file1)
 void touch()
 {
-	if (s2.length() == 0) {
-		printf("Please input filename.\n");
-		return;
-	}
-	int i, temp_cur; 
+    if (s2.length() == 0) {
+        printf("Please input filename.\n");
+        return;
+    }
+    int i, temp_cur;
     string temps1, temps2;
-	if (s2.find('/') != -1) {  // 要创建的file不在当前目录下，而是在路径中的指定文件下
-		temps1 = s2.substr(0, s2.find_last_of('/') + 1);
-		temps2 = s2.substr(s2.find_last_of('/') + 1);
-		s2 = temps1;
-		temp_cur = readby(temps1);
-		if (temp_cur == -1) {
-			printf("No Such Directory\n");
-		}
-	}
-	else {
-		temps2 = s2;
-		temp_cur = inum_cur;
-	}
-	FCBIndex index = CreateFile(s2,temp_cur);
-    if(index!=-1){
+    if (s2.find('/') != -1) {  // 要创建的file不在当前目录下，而是在路径中的指定文件下
+        temps1 = s2.substr(0, s2.find_last_of('/') + 1);
+        temps2 = s2.substr(s2.find_last_of('/') + 1);
+        s2 = temps1;
+        temp_cur = readby(temps1);
+        if (temp_cur == -1) {
+            printf("No Such Directory\n");
+        }
+    }
+    else {
+        temps2 = s2;
+        temp_cur = inum_cur;
+    }
+    FCBIndex index = CreateFile(s2, temp_cur);
+    if (index != -1) {
         printf("Create File Successfully!\n");
-    }else{
+    }
+    else {
         printf("Failed!\n");
     }
 }
 
 // an exist file
 void cat() {
-	int i, inum;
-	string temps1, temps2; int temp_cur;
-	if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
-		temps1 = s2.substr(0, s2.find_last_of('/') + 1);
-		temps2 = s2.substr(s2.find_last_of('/') + 1);
-		string temps = s2;
-		s2 = temps1;
-		temp_cur = readby(temps1);
-		s2 = temps;
-	}
-	else {
-		temps2 = s2;
-		temp_cur = inum_cur;
-	}
+    int i, inum;
+    string temps1, temps2; int temp_cur;
+    if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
+        temps1 = s2.substr(0, s2.find_last_of('/') + 1);
+        temps2 = s2.substr(s2.find_last_of('/') + 1);
+        string temps = s2;
+        s2 = temps1;
+        temp_cur = readby(temps1);
+        s2 = temps;
+    }
+    else {
+        temps2 = s2;
+        temp_cur = inum_cur;
+    }
     FCBIndex file_cur = Find(temp_cur, s2);
-    FileControlBlock *fcb;
-    FileInfo(file_cur, &fcb);
-    uint8_t *buff;
-	int64_t res = ReadFile(file_cur, 0, fcb->Size, &buff);
-    if(res!=-1){
+    FileControlBlock* fcb;
+    FileInfo(file_cur, fcb);
+    uint8_t* buff;
+    int64_t res = ReadFile(file_cur, 0, fcb->Size, buff);//指针类型传指针类型参数不用加&
+    if (res != -1) {
         printf("%s\n", buff);
-    }else{
+    }
+    else {
         printf("Read Fail!\n");
     }
-    
+
 }
 
 // open and write something to a particular file
 void vi() {
-	int i, inum;
-	string temps1, temps2; int temp_cur;
+    int i, inum;
+    int64_t res;
+    string temps1, temps2; int temp_cur;
     char temp[10 * BLKSIZE];
-    uint8_t *buff;
-	if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
-		temps1 = s2.substr(0, s2.find_last_of('/') + 1);
-		temps2 = s2.substr(s2.find_last_of('/') + 1);
-		string temps = s2;
-		s2 = temps1;
-		temp_cur = readby(temps1);
-		s2 = temps;
-	}
-	else {
-		temps2 = s2;
-		temp_cur = inum_cur;
-	}
+    uint8_t* buff;
+    if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
+        temps1 = s2.substr(0, s2.find_last_of('/') + 1);
+        temps2 = s2.substr(s2.find_last_of('/') + 1);
+        string temps = s2;
+        s2 = temps1;
+        temp_cur = readby(temps1);
+        s2 = temps;
+    }
+    else {
+        temps2 = s2;
+        temp_cur = inum_cur;
+    }
     FCBIndex file_cur = Find(temp_cur, s2);
-    FileControlBlock *fcb;
-    FileInfo(file_cur, &fcb);
-    if(fcb->Size == 0){
-        printf('Please input: \n');
+    FileControlBlock* fcb;
+    FileInfo(file_cur, fcb);
+    if (fcb->Size == 0) {
+        printf("Please input: \n");
         gets_s(temp);
-        int64_t res = WriteFile(file_cur, 0, strlen(temp), temp);
-    }else{
+        res = WriteFile(file_cur, 0, strlen(temp), (uint8_t*)(temp));
+    }
+    else {
         char choice;
         printf("This file already exist data! \n");
         printf("Overwrite or append? input o/a:");
         scanf("%c", &choice);
-        if(choice == 'o'){
+        if (choice == 'o') {
             printf("Please input: \n");
             gets_s(temp);
-            int64_t res = WriteFile(file_cur, 0, strlen(temp), temp);
+            res = WriteFile(file_cur, 0, strlen(temp), (uint8_t*)(temp));
         }
-        else if(choice == 'a'){
+        else if (choice == 'a') {
             printf("Please input: \n");
             gets_s(temp);
-            int64_t res = WriteFile(file_cur, fcb->Size+1, strlen(temp), temp);
-        }else{
-            printf("Exit write!\n")
+            res = WriteFile(file_cur, fcb->Size + 1, strlen(temp), (uint8_t*)(temp));
         }
-        if(res!=-1){
+        else {
+            printf("Exit write!\n");
+        }
+        if (res != -1) {
             printf("Write file successfully!\n");
-        }else{
+        }
+        else {
             printf("Failed to write!\n");
         }
     }
@@ -560,138 +566,141 @@ void vi() {
 // 功能: 删除文件
 void rm(void)
 {
-	if (s2.length() == 0) {
-		printf("This file doesn't exist.\n");
-		return;
-	}
-	int i, temp_cur; string temps1, temps2;
-	if (s2.find('/') != -1) {
-		temps1 = s2.substr(0, s2.find_last_of('/') + 1);
-		temps2 = s2.substr(s2.find_last_of('/') + 1);
-		s2 = temps1;
-		temp_cur = readby(temps1);
-	}
-	else {
-		temps2 = s2;
-		temp_cur = inum_cur;
-	}
-    FCBIndex file_cur = Find(temp_cur,temps2);
-	bool suc = DeleteFile(file_cur);
-    if(suc!=-1){
+    if (s2.length() == 0) {
+        printf("This file doesn't exist.\n");
+        return;
+    }
+    int i, temp_cur; string temps1, temps2;
+    if (s2.find('/') != -1) {
+        temps1 = s2.substr(0, s2.find_last_of('/') + 1);
+        temps2 = s2.substr(s2.find_last_of('/') + 1);
+        s2 = temps1;
+        temp_cur = readby(temps1);
+    }
+    else {
+        temps2 = s2;
+        temp_cur = inum_cur;
+    }
+    FCBIndex file_cur = Find(temp_cur, temps2);
+    bool suc = DeleteFile(file_cur);
+    if (suc != -1) {
         printf("Delete Successfully!\n");
-    }eles{
+    }
+    else {
         printf("Delete Failed!\n");
     }
 }
 
 // an exist file
 void cat() {
-	int i, inum;
-	string temps1, temps2; int temp_cur;
-	if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
-		temps1 = s2.substr(0, s2.find_last_of('/') + 1);
-		temps2 = s2.substr(s2.find_last_of('/') + 1);
-		string temps = s2;
-		s2 = temps1;
-		temp_cur = readby(temps1);
-		s2 = temps;
-	}
-	else {
-		temps2 = s2;
-		temp_cur = inum_cur;
-	}
-	FCBIndex file_cur = Find(temp_cur, s2);
-	FileControlBlock* fcb;
-    FileInfo(file_cur, &fcb);
-	uint8_t* buff;
-	int64_t res = ReadFile(file_cur, 0, fcb->Size, &buff);
-	if (res != -1) {
-		printf("%s\n", buff);
-	}
-	else {
-		printf("Read Fail!\n");
-	}
+    int i, inum;
+    string temps1, temps2; int temp_cur;
+    if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
+        temps1 = s2.substr(0, s2.find_last_of('/') + 1);
+        temps2 = s2.substr(s2.find_last_of('/') + 1);
+        string temps = s2;
+        s2 = temps1;
+        temp_cur = readby(temps1);
+        s2 = temps;
+    }
+    else {
+        temps2 = s2;
+        temp_cur = inum_cur;
+    }
+    FCBIndex file_cur = Find(temp_cur, s2);
+    FileControlBlock* fcb;
+    FileInfo(file_cur, fcb);
+    uint8_t* buff;
+    int64_t res = ReadFile(file_cur, 0, fcb->Size, buff);
+    if (res != -1) {
+        printf("%s\n", buff);
+    }
+    else {
+        printf("Read Fail!\n");
+    }
 
 }
 
 // open and write something to a particular file
 void vi() {
-	int i, inum;
-	string temps1, temps2; int temp_cur;
-	char temp[10 * BLKSIZE];
-	uint8_t* buff;
-	if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
-		temps1 = s2.substr(0, s2.find_last_of('/') + 1);
-		temps2 = s2.substr(s2.find_last_of('/') + 1);
-		string temps = s2;
-		s2 = temps1;
-		temp_cur = readby(temps1);
-		s2 = temps;
-	}
-	else {
-		temps2 = s2;
-		temp_cur = inum_cur;
-	}
-	FCBIndex file_cur = Find(temp_cur, s2);
-	FileControlBlock* fcb;
-    FileInfo(file_cur, &fcb);
-	if (fcb->Size == 0) {
-		printf('Please input: \n');
-		gets_s(temp);
-		int64_t res = WriteFile(file_cur, 0, strlen(temp), temp);
-	}
-	else {
-		char choice;
-		printf("This file already exist data! \n");
-		printf("Overwrite or append? input o/a:");
-		scanf("%c", &choice);
-		if (choice == 'o') {
-			printf("Please input: \n");
-			gets_s(temp);
-			int64_t res = WriteFile(file_cur, 0, strlen(temp), temp);
-		}
-		else if (choice == 'a') {
-			printf("Please input: \n");
-			gets_s(temp);
-			int64_t res = WriteFile(file_cur, fcb->Size + 1, strlen(temp), temp);
-		}
-		else {
-			printf("Exit write!\n")
-		}
-		if (res != -1) {
-			printf("Write file successfully!\n");
-		}
-		else {
-			printf("Failed to write!\n");
-		}
-	}
+    int i, inum;
+    int64_t res;
+    string temps1, temps2; int temp_cur;
+    char temp[10 * BLKSIZE];
+    uint8_t* buff;
+    if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
+        temps1 = s2.substr(0, s2.find_last_of('/') + 1);
+        temps2 = s2.substr(s2.find_last_of('/') + 1);
+        string temps = s2;
+        s2 = temps1;
+        temp_cur = readby(temps1);
+        s2 = temps;
+    }
+    else {
+        temps2 = s2;
+        temp_cur = inum_cur;
+    }
+    FCBIndex file_cur = Find(temp_cur, s2);
+    FileControlBlock* fcb;
+    FileInfo(file_cur, fcb);
+    if (fcb->Size == 0) {
+        printf("Please input: \n");
+        gets_s(temp);
+        res = WriteFile(file_cur, 0, strlen(temp), (uint8_t*)(temp));
+    }
+    else {
+        char choice;
+        printf("This file already exist data! \n");
+        printf("Overwrite or append? input o/a:");
+        scanf("%c", &choice);
+        if (choice == 'o') {
+            printf("Please input: \n");
+            gets_s(temp);
+            res = WriteFile(file_cur, 0, strlen(temp), (uint8_t*)(temp));
+        }
+        else if (choice == 'a') {
+            printf("Please input: \n");
+            gets_s(temp);
+            res = WriteFile(file_cur, fcb->Size + 1, strlen(temp), (uint8_t*)(temp));
+        }
+        else {
+            printf("Exit write!\n");
+        }
+        if (res != -1) {
+            printf("Write file successfully!\n");
+        }
+        else {
+            printf("Failed to write!\n");
+        }
+    }
 }
 
 // 功能: 删除文件夹
 void rmdir(void)
 {
-	if (s2.length() == 0) {
-		printf("This file doesn't exist.\n");
-		return;
-	}
-	int i, temp_cur; string temps1, temps2;
-	if (s2.find('/') != -1) {
-		temps1 = s2.substr(0, s2.find_last_of('/') + 1);
-		temps2 = s2.substr(s2.find_last_of('/') + 1);
-		s2 = temps1;
-		temp_cur = readby(temps1);
-	}
-	else {
-		temps2 = s2;
-		temp_cur = inum_cur;
-	}
-	FCBIndex file_cur = Find(temp_cur, temps2);
-	bool suc = DeleteFile(file_cur);
-	if (suc!=-1) {
-		printf("Delete Successfully!\n");
-	}eles{
-		printf("Delete Failed!\n");
-	}
+    if (s2.length() == 0) {
+        printf("This file doesn't exist.\n");
+        return;
+    }
+    int i, temp_cur; string temps1, temps2;
+    if (s2.find('/') != -1) {
+        temps1 = s2.substr(0, s2.find_last_of('/') + 1);
+        temps2 = s2.substr(s2.find_last_of('/') + 1);
+        s2 = temps1;
+        temp_cur = readby(temps1);
+    }
+    else {
+        temps2 = s2;
+        temp_cur = inum_cur;
+    }
+    FCBIndex file_cur = Find(temp_cur, temps2);
+    bool suc = DeleteFile(file_cur);
+    if (suc != -1) {
+        printf("Delete Successfully!\n");
+    }
+    else {
+        printf("Delete Failed!\n");
+    }
 }
 
 // 功能: 退出文件系统(quit)
@@ -764,7 +773,7 @@ void command(void)
             printf("\n");
             break;
         case 0:
-            help();  
+            help();
             break;
         case 1:
             cd(s2);
