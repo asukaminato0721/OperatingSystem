@@ -184,7 +184,7 @@ void pathset()
         FileControlBlock *fcb;
         while (temp != 0)
         {
-            GetFCB(temp, &fcb);//首次依据当前FCB号
+            FileInfo(temp, &fcb);//首次依据当前FCB号
             s = fcb->Name + s;
             s = '/' + s;
             temp = fcb->Parent;
@@ -496,7 +496,7 @@ void cat() {
 	}
     FCBIndex file_cur = Find(temp_cur, s2);
     FileControlBlock *fcb;
-    GetFCB(file_cur, &fcb);
+    FileInfo(file_cur, &fcb);
     uint8_t *buff;
 	int64_t res = ReadFile(file_cur, 0, fcb->Size, &buff);
     if(res!=-1){
@@ -527,7 +527,7 @@ void vi() {
 	}
     FCBIndex file_cur = Find(temp_cur, s2);
     FileControlBlock *fcb;
-    GetFCB(file_cur, &fcb);
+    FileInfo(file_cur, &fcb);
     if(fcb->Size == 0){
         printf('Please input: \n');
         gets_s(temp);
@@ -602,7 +602,7 @@ void cat() {
 	}
 	FCBIndex file_cur = Find(temp_cur, s2);
 	FileControlBlock* fcb;
-	GetFCB(file_cur, &fcb);
+    FileInfo(file_cur, &fcb);
 	uint8_t* buff;
 	int64_t res = ReadFile(file_cur, 0, fcb->Size, &buff);
 	if (res != -1) {
@@ -634,7 +634,7 @@ void vi() {
 	}
 	FCBIndex file_cur = Find(temp_cur, s2);
 	FileControlBlock* fcb;
-	GetFCB(file_cur, &fcb);
+    FileInfo(file_cur, &fcb);
 	if (fcb->Size == 0) {
 		printf('Please input: \n');
 		gets_s(temp);
