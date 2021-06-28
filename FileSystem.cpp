@@ -8,33 +8,39 @@ uint8_t Access::None = 0;
 uint8_t Access::Read = 1 << 0;
 uint8_t Access::Write = 1 << 1;
 uint8_t Access::Delete = 1 << 2;
-
-// TODO ： 删除文件时将父目录的目录文件紧凑化
+uint8_t Access::All = 0xFF;
 
 //Global Vars
 SuperBlock Super;
-BiSet* FCBBitMap, * DataBitMap;
+
+class BiSet {
+public:
+	BiSet(uint32_t size) {
+		this->SizeOfBool = size;
+		this->SizeOfByte = (int)ceil(size / 8);
+		if (size % 8 != 0) {
+			this->SizeOfByte++;
+		}
+		this->data = (uint8_t*)calloc(this->SizeOfByte, sizeof(uint8_t));
+	}
+	bool get(uint32_t index) { return bool(data[index / 8] & (1 << (index % 8))); }
+	void set(uint32_t index, bool val) {
+		if (val == true) {
+			this->data[index / 8] = this->data[index / 8] | (1 << (index % 8));
+		}
+		else {
+			uint8_t mask = ~(uint8_t)(1 << (index % 8));
+			this->data[index / 8] = this->data[index / 8] & mask;
+		}
+	}
+	~BiSet() { free(this->data); }
+	uint32_t SizeOfBool;
+	uint32_t SizeOfByte;
+	uint8_t* data = nullptr;
+}*FCBBitMap, * DataBitMap;
+
 
 //Tool Functions
-BiSet::BiSet(uint32_t size) {
-	this->SizeOfBool = size;
-	this->SizeOfByte = (int)ceil(size / 8);
-	if (size % 8 != 0) {
-		this->SizeOfByte++;
-	}
-	this->data = (uint8_t*)calloc(this->SizeOfByte, sizeof(uint8_t));
-}
-bool BiSet::get(uint32_t index) { return bool(data[index / 8] & (1 << (index % 8))); }
-void BiSet::set(uint32_t index, bool val) {
-	if (val == true) {
-		this->data[index / 8] = this->data[index / 8] | (1 << (index % 8));
-	}
-	else {
-		uint8_t mask = ~(uint8_t)(1 << (index % 8));
-		this->data[index / 8] = this->data[index / 8] & mask;
-	}
-}
-BiSet::~BiSet() { free(this->data); }
 
 FileControlBlock::FileControlBlock() {}
 FileControlBlock::FileControlBlock(enum FileType t, const char* name, uint8_t AccessMode, FCBIndex parent) {
@@ -43,9 +49,10 @@ FileControlBlock::FileControlBlock(enum FileType t, const char* name, uint8_t Ac
 	time(&this->CreateTime);
 	this->Size = 0;
 	this->Parent = parent;
+	this->AccessMode = AccessMode;
 }
 
-static BlockIndex GetEmptyBlock() {
+static inline BlockIndex GetEmptyBlock() {
 	for (size_t i = 0; i < DataBitMap->SizeOfByte; ++i) {
 		if (DataBitMap->data[i] != 0xFF) {
 			for (int j = 0; j < 8; ++j) {
@@ -58,7 +65,7 @@ static BlockIndex GetEmptyBlock() {
 	printf("Disk Full!\n");
 	return -1;
 }
-static FCBIndex GetEmptyFCB() {
+static inline FCBIndex GetEmptyFCB() {
 
 	for (size_t i = 0; i < FCBBitMap->SizeOfByte; ++i) {
 		if (FCBBitMap->data[i] != 0xFF) {
@@ -77,26 +84,30 @@ static FCBIndex GetEmptyFCB() {
 
 static inline uint16_t& BlockSize(uint8_t* blockBuff) { return ((Block*)blockBuff)->Size; }
 static inline uint16_t& BlockFCS(uint8_t* blockBuff) { return ((Block*)blockBuff)->FCS; }
-static void LoadFCB(FCBIndex index, FileControlBlock* buff) {
+static inline void LoadFCB(FCBIndex index, FileControlBlock* buff) {
+	assert(index != -1);
 	ReadDisk((uint8_t*)buff, Super.FCBOffset * Super.BlockSize + index * FILE_CONTROL_BLOCK_SIZE, sizeof(FileControlBlock));
 	buff->ReadTime = time(NULL);
 	return;
 }
-static void StoreFCB(FCBIndex index, FileControlBlock* buff) {
+static inline void StoreFCB(FCBIndex index, FileControlBlock* buff) {
+	assert(index != -1);
 	WriteDisk((uint8_t*)buff, Super.FCBOffset * Super.BlockSize + index * FILE_CONTROL_BLOCK_SIZE, sizeof(FileControlBlock));
 	return;
 }
-static void LoadBlock(BlockIndex index, uint8_t* buff) {
+static inline void LoadBlock(BlockIndex index, uint8_t* buff) {
+	assert(index != -1);
 	ReadDisk(buff, (index + Super.DataOffset) * Super.BlockSize, Super.BlockSize);
 	if (Chk_XOR_ErrorDetection(buff + sizeof(Block), MAX_BLOCK_SPACE, BlockFCS(buff)) == false) {
 		printf("Error:Error detection find a error.\n");
 	}
 }
-static void StoreBlock(BlockIndex index, uint8_t* buff) {
+static inline void StoreBlock(BlockIndex index, uint8_t* buff) {
+	assert(index != -1);
 	BlockFCS(buff) = Cal_XOR_ErrorDetection(buff + sizeof(Block), MAX_BLOCK_SPACE);
 	WriteDisk(buff, (index + Super.DataOffset) * Super.BlockSize, Super.BlockSize);
 }
-static void MakeDirBlock(FCBIndex firstIndex, uint8_t* buff) {
+static inline void MakeDirBlock(FCBIndex firstIndex, uint8_t* buff) {
 	((Block*)buff)->Size = sizeof(FCBIndex);
 	*(FCBIndex*)(buff + sizeof(Block)) = firstIndex;
 	for (size_t i = sizeof(Block) + sizeof(FCBIndex); i < Super.BlockSize; i += sizeof(FCBIndex)) {
@@ -112,6 +123,7 @@ public:
 	~FilePointerReader() { free(Pointer); }
 
 	void Load(FCBIndex index) {
+		Self_Index = index;
 		LoadFCB(index, &FCB);
 		for (size_t i = 0; i < 10; i++) {
 			BlockList.push_back(FCB.DirectBlock[i]);
@@ -132,7 +144,7 @@ public:
 			return -1;
 		}
 		else {
-			return *((BlockIndex*)(Pointer + sizeof(Block)) + (index % 10));
+			return *((BlockIndex*)(Pointer + sizeof(Block)) + (index - 10));
 		}
 	}
 	//增加新的块
@@ -144,30 +156,46 @@ public:
 				DataBitMap->set(blockIndex, true);
 				StoreBlock(blockIndex, blockBuff); //写入数据块
 				FCB.DirectBlock[i] = blockIndex;   //更新FCB
-				goto AppendNewBlock_end;
+				//goto AppendNewBlock_end;
+				WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte); //写入DataBlock的bitmap
+				StoreFCB(Self_Index, &FCB);
+				return blockIndex;
 			}
 		}
-		if (FCB.Pointer != -1) {
-			uint8_t* pointerBuff = (uint8_t*)malloc(Super.BlockSize);
-			LoadBlock(FCB.Pointer, pointerBuff);
-			for (uint64_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(BlockIndex)) {
-				if (*(BlockIndex*)(pointerBuff + pos) == -1) {
-					blockIndex = GetEmptyBlock();
-					DataBitMap->set(blockIndex, true);
-					StoreBlock(blockIndex, blockBuff); //写入数据块
-					*(BlockIndex*)(pointerBuff + pos) = blockIndex;
-					StoreBlock(FCB.Pointer, pointerBuff); //更新pointer块
-					free(pointerBuff);
-					goto AppendNewBlock_end;
-				}
+		//前10个块没存下
+		if (FCB.Pointer == -1) {
+			Pointer = (uint8_t*)malloc(Super.BlockSize);
+
+			//制作空的Pointer
+			for (BlockIndex* iter = (BlockIndex*)(Pointer + sizeof(Block)); iter < (BlockIndex*)(Pointer + Super.BlockSize); ++iter) {
+				*iter = -1;
 			}
-			printf("ERROR:Append Block Failed! No Pointer remain.\n");
-			return blockIndex;
+			//写入Pointer块
+			blockIndex = GetEmptyBlock();
+			DataBitMap->set(blockIndex, true);
+			StoreBlock(blockIndex, Pointer);
+			//更新 FCB
+			FCB.Pointer = blockIndex;
 		}
-	AppendNewBlock_end:
-		WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte); //写入DataBlock的bitmap
-		StoreFCB(Self_Index, &FCB);
-		return true;
+		else {
+			LoadBlock(FCB.Pointer, Pointer);
+		}
+		for (BlockIndex* iter = (BlockIndex*)(Pointer + sizeof(Block)); iter < (BlockIndex*)(Pointer + Super.BlockSize); ++iter) {
+			if (*iter == -1) {
+				blockIndex = GetEmptyBlock();
+				DataBitMap->set(blockIndex, true);
+				StoreBlock(blockIndex, blockBuff); //写入数据块
+				*iter = blockIndex;
+				StoreBlock(FCB.Pointer, Pointer); //更新pointer块
+				//goto AppendNewBlock_end;
+				WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte); //写入DataBlock的bitmap
+				StoreFCB(Self_Index, &FCB);
+				return blockIndex;
+			}
+		}
+		printf("ERROR:Append Block Failed! No Pointer available.\n");
+		return -1;
+
 	}
 	//将第index页读入内存
 	BlockIndex ReadPage(uint32_t index, uint8_t* blockBuff) {
@@ -181,7 +209,7 @@ public:
 			}
 		}
 		else {
-			auto blockId = *((BlockIndex*)(Pointer + sizeof(Block)) + (index % 10));
+			auto blockId = *((BlockIndex*)(Pointer + sizeof(Block)) + (index - 10));
 			if (blockId != -1) {
 				LoadBlock(blockId, blockBuff);
 				return blockId;
@@ -193,7 +221,7 @@ public:
 	}
 
 	FileControlBlock FCB;
-	uint8_t* Pointer;
+	uint8_t* Pointer = nullptr;
 	FCBIndex Self_Index = -1;
 	vector<BlockIndex> BlockList;
 };
@@ -204,8 +232,8 @@ bool LoadDisk() {
 	if (strcmp(Super.Version, VERSION_STRING) == 0) {
 		FCBBitMap = new BiSet(Super.FCBNum);        //初始化FCB的bitmap
 		DataBitMap = new BiSet(Super.DataBlockNum); //初始化Data的bitmap
-		ReadDisk(FCBBitMap->data, Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);
-		ReadDisk(DataBitMap->data, Super.DataBitmapOffset, DataBitMap->SizeOfByte);
+		ReadDisk(FCBBitMap->data, Super.FCBBitmapOffset * Super.BlockSize, FCBBitMap->SizeOfByte);
+		ReadDisk(DataBitMap->data, Super.DataBitmapOffset * Super.BlockSize, DataBitMap->SizeOfByte);
 		return true;
 	}
 	else {
@@ -238,7 +266,12 @@ void FormatDisk(uint32_t blocksize, uint32_t FCBBlockNum) {
 	Super.DataOffset = Super.FCBOffset + FCBBlockNum;
 	uint8_t* blockBuff = (uint8_t*)calloc(Super.BlockSize, sizeof(uint8_t));
 	memcpy(blockBuff, &Super, sizeof(Super));
-	StoreBlock(0, blockBuff);//写入SuperBlock
+	//StoreBlock(0, blockBuff);															//写入SuperBlock
+	//Super不能使用StoreBlock写入，需要手动写入
+	BlockFCS(blockBuff) = Cal_XOR_ErrorDetection(blockBuff + sizeof(Block), MAX_BLOCK_SPACE);
+	WriteDisk(blockBuff, 0, Super.BlockSize);
+
+
 	free(blockBuff);
 
 	FCBBitMap = new BiSet(Super.FCBNum);        //初始化FCB的bitmap
@@ -249,14 +282,10 @@ void FormatDisk(uint32_t blocksize, uint32_t FCBBlockNum) {
 	//空目录不需要数据块
 
 	//构建根目录FCB
-	FileControlBlock root(FileType::Directory, "Root", Access::None, 0);
-	strcpy(root.Name, "Root");
-	root.AccessMode = Access::None;
+	FileControlBlock root(FileType::Directory, "Root", Access::All, 0);
 	time(&root.CreateTime);
 
 	root.Size = 0;
-	//空目录暂无数据块
-	// root.DirectBlock[0] = StorgeLocation;																	//设置存储块号
 	FCBBitMap->set(0, true); //设置DataBlock的bitmap
 	// WriteDisk((uint8_t*)&root, Super.BlockSize * (Super.FCBOffset + 0), sizeof(root));
 	StoreFCB(0, &root); // root的FCB.id = 0
@@ -266,18 +295,17 @@ void FormatDisk(uint32_t blocksize, uint32_t FCBBlockNum) {
 }
 
 void PrintDiskInfo() {
-	printf("================================================\n");
 	printf("Disk:\n");
-	printf("    Disk Size             = %8.2lf MByte\n", Super.DiskSize * 1.0 / (1 << 20));
-	printf("    Block Size            = %8d Bytes\n", Super.BlockSize);
+	printf("    Disk Size     = %8.2lf MByte\n", Super.DiskSize * 1.0 / (1 << 20));
+	printf("    Block Size    = %8d Bytes\n", Super.BlockSize);
+	printf("    Max File Size = %8.2lf KByte\n", (((10 + (Super.BlockSize - sizeof(Block)) / sizeof(BlockIndex)) * Super.BlockSize)) * 1.0 / 1024);
 	printf("Blocks:\n");
-	printf("    Super                 = %8d Blocks\n", 1);
-	printf("    FCB Bitmap            = %8d Blocks\n", Super.DataBitmapOffset - Super.FCBBitmapOffset);
-	printf("    Data Bitmap           = %8d Blocks\n", Super.FCBOffset - Super.DataBitmapOffset);
-	printf("    FCB                   = %8d Blocks\n", Super.DataOffset - Super.FCBOffset);
-	printf("                          = %8d pics\n", Super.FCBNum);
-	printf("    Data                  = %8d Blocks\n", Super.DataBlockNum);
-	printf("    Total                 = %8d Blocks\n", Super.BlockNum);
+	printf("    Super         = %8d Blocks\n", 1);
+	printf("    FCB Bitmap    = %8d Blocks\n", Super.DataBitmapOffset - Super.FCBBitmapOffset);
+	printf("    Data Bitmap   = %8d Blocks\n", Super.FCBOffset - Super.DataBitmapOffset);
+	printf("    FCB           = %8d Blocks\n", Super.DataOffset - Super.FCBOffset);
+	printf("    Data          = %8d Blocks\n", Super.DataBlockNum);
+	printf("    Total         = %8d Blocks\n", Super.BlockNum);
 	printf("Usage:\n");
 	uint32_t freeFCB = 0, freeBlock = 0, usedFCB = 0, usedBlock = 0;
 	for (size_t i = 0; i < FCBBitMap->SizeOfBool; i++) {
@@ -296,19 +324,17 @@ void PrintDiskInfo() {
 			usedBlock++;
 		}
 	}
-	printf("    FCB Total            = %8d pics\n", freeFCB + usedFCB);
-	printf("        Available        = %8d pics\n", freeFCB);
-	printf("        Used             = %8d pics\n", usedFCB);
-	printf("    Block Total          = %8d Blocks\n", freeBlock + usedBlock);
-	printf("        Available        = %8d Blocks\n", freeBlock);
-	printf("        Used             = %8d Blocks\n", usedBlock);
-	printf("================================================\n");
+	printf("    FCB Total     = %8d pics\n", freeFCB + usedFCB);
+	printf("        Available = %8d pics\n", freeFCB);
+	printf("        Used      = %8d pics\n", usedFCB);
+	printf("    Block Total   = %8d Blocks\n", freeBlock + usedBlock);
+	printf("        Available = %8d Blocks\n", freeBlock);
+	printf("        Used      = %8d Blocks\n", usedBlock);
 }
 
 void PrintDir(FCBIndex dir) {
 	uint8_t* blockBuff = (uint8_t*)malloc(Super.BlockSize);
 	BlockIndex block = 0;
-	printf("================================================\n");
 	//printf("%12s | %12s | %6s | % 10s\n", "Name", "Size", "FCB", "Physical Address");
 	FileControlBlock DirFCB, childs;
 	LoadFCB(dir, &DirFCB);
@@ -319,51 +345,73 @@ void PrintDir(FCBIndex dir) {
 				continue;
 			}
 			LoadFCB(*iter, &childs);
-			if (DirFCB.Type == FileType::Directory) {
-				printf("%12s | %12s | %6d | ", childs.Name, "<Dir>", *iter);
+			if (childs.Type == FileType::Directory) {
+				printf("[%d] %-12s  %18s  @ ", *iter, childs.Name, "<Dir>");
 			}
 			else {
-				printf("%12s | %12d | %6d | ", childs.Name, childs.Size, *iter);
+				printf("[%d] %-12s  %12d Bytes  @ ", *iter, childs.Name, childs.Size);
 			}
 			for (int i = 0; i < 10 && childs.DirectBlock[i] != -1; i++) {
-				printf("%X ", childs.DirectBlock[i]);
+				printf("0x%X ", childs.DirectBlock[i]);
+			}
+			if (childs.Pointer != -1) {
+				printf("...");
 			}
 			printf("\n");
 		}
 	}
 PrintDir_end:
-	printf("================================================\n\n");
 	free(blockBuff);
 }
 
 void PrintInfo(FCBIndex file) {
 	FileControlBlock fcb;
 	LoadFCB(file, &fcb);
-	printf("================================================\n");
-	printf("Name        : %s\n", fcb.Name);
+	printf("Name      : %s\n", fcb.Name);
+	printf("Access    : ");
+	if (fcb.AccessMode & Access::Read) {
+		printf("r");
+	}
+	if (fcb.AccessMode & Access::Write) {
+		printf("w");
+	}
+	if (fcb.AccessMode & Access::Delete) {
+		printf("d");
+	}
+	printf("\n");
+
 	if (fcb.Type == FileType::Directory) {
-		printf("Type        : Directory\n");
+		printf("Type      : Directory\n");
 	}
 	else {
-		printf("Type        : File\n");
-		printf("Size        : %d Bytes\n", fcb.Size);
+		printf("Type      : File\n");
+		printf("Size      : %d Bytes\n", fcb.Size);
 	}
-	printf("Create Time : %s\n", ctime(&fcb.CreateTime));
-	printf("Read Time   : %s\n", ctime(&fcb.ReadTime));
-	printf("Modify Time : %s\n", ctime(&fcb.ModifyTime));
-	printf("Parent      : %d\n", fcb.Parent);
-	printf("================================================\n");
+	printf("Create    : %s\n", ctime(&fcb.CreateTime));
+	printf("Read      : %s\n", ctime(&fcb.ReadTime));
+	printf("Modify    : %s\n", ctime(&fcb.ModifyTime));
+	printf("Physical Address : \n");
+	FilePointerReader fpr;
+	fpr.Load(file);
+	for (int i = 0; i < MAX_POINTER; ++i) {
+		if (fpr.GetBlockIndex(i) != -1) {
+			printf("0x%X ", fpr.GetBlockIndex(i));
+		}
+		else {
+			break;
+		}
+	}
 }
 
-FCBIndex CreateDirectory(string name, FCBIndex dir) { return Create(name, dir, FileType::Directory); }
+FCBIndex CreateDirectory(const string& name, FCBIndex dir) { return Create(name, dir, FileType::Directory); }
 
-FCBIndex CreateFile(string name, FCBIndex dir) { return Create(name, dir, FileType::File); }
-
-
+FCBIndex CreateFile(const string& name, FCBIndex dir) { return Create(name, dir, FileType::File); }
 
 
 
-FCBIndex Find(FCBIndex dir, string filename) {
+
+
+FCBIndex Find(FCBIndex dir, const string& filename) {
 	FileControlBlock fcb, result;
 	LoadFCB(dir, &fcb);
 	if (fcb.Type != FileType::Directory) {
@@ -371,6 +419,9 @@ FCBIndex Find(FCBIndex dir, string filename) {
 	}
 	else if (filename == "..") {
 		return fcb.Parent;
+	}
+	else if (filename == ".") {
+		return dir;
 	}
 	else {
 		uint8_t* blockBuff = (uint8_t*)malloc(Super.BlockSize);
@@ -414,7 +465,7 @@ PrintDir_end:
 	return ret;
 }
 
-FCBIndex Create(string name, FCBIndex dir, enum FileType t) {
+FCBIndex Create(const string& name, FCBIndex dir, enum FileType t) {
 	if (name.length() > 30) {
 		printf("Directory Name Too long!\n");
 		return -1;
@@ -422,19 +473,28 @@ FCBIndex Create(string name, FCBIndex dir, enum FileType t) {
 	uint8_t* BlockBuff = (uint8_t*)malloc(Super.BlockSize);
 
 	//创建新的FCB
-	FileControlBlock fcb(t, name.c_str(), Access::Read | Access::Write | Access::Delete, dir);
+	FileControlBlock  dirFCB;
+	LoadFCB(dir, &dirFCB);
+	if ((dirFCB.AccessMode & Access::Write) == false) {
+		printf("Error:Access denied! Directory is not writeable.\n");
+		return -1;
+	}
+
+	FileControlBlock newFileFCB(t, name.c_str(), Access::Read | Access::Write | Access::Delete, dir);
+	newFileFCB.CreateTime = time(NULL);
 	FCBIndex fcbIndex = GetEmptyFCB();
 
 
 
 	//检查重名并写入父目录(将fcbIndex写入父目录)
-	FileControlBlock dirFCB, NameCheck;
-	LoadFCB(dir, &dirFCB);
+
+
+	FileControlBlock NameCheck;
 	for (size_t i = 0; i < 10; i++) {
 		if (dirFCB.DirectBlock[i] == -1) { //存入新的目录页
 			//真正写入FCB
 			FCBBitMap->set(fcbIndex, true);
-			StoreFCB(fcbIndex, &fcb);
+			StoreFCB(fcbIndex, &newFileFCB);
 
 			MakeDirBlock(fcbIndex, BlockBuff);
 			BlockIndex newDirPage = GetEmptyBlock();
@@ -449,7 +509,7 @@ FCBIndex Create(string name, FCBIndex dir, enum FileType t) {
 				if (*iter == -1) {
 					//真正写入FCB
 					FCBBitMap->set(fcbIndex, true);
-					StoreFCB(fcbIndex, &fcb);
+					StoreFCB(fcbIndex, &newFileFCB);
 
 					*iter = fcbIndex;
 					BlockSize(BlockBuff) += sizeof(FCBIndex);
@@ -496,6 +556,10 @@ int64_t ReadFile(FCBIndex file, int64_t pos, int64_t len, uint8_t* buff) {
 	}
 	else if (len < 0) {
 		printf("Error:len = %ld should larger than or equal to 0.\n", len);
+		return -1;
+	}
+	else if ((ThisFileFCB.AccessMode & Access::Read) == false) {
+		printf("Error:Access denied! File is not readable.\n");
 		return -1;
 	}
 	uint64_t inBlockPos = pos;
@@ -551,6 +615,10 @@ int64_t WriteFile(FCBIndex file, int64_t pos, int64_t len, const uint8_t* buff) 
 	}
 	else if (len < 0) {
 		printf("Error:len = %lld should larger than or equal to 0.\n", len);
+		return -1;
+	}
+	else if ((ThisFileFCB.AccessMode & Access::Write) == false) {
+		printf("Error:Access denied! File is not writeable.\n");
 		return -1;
 	}
 	uint64_t inBlockPos = pos;
@@ -618,6 +686,10 @@ WriteFile_end:
 bool DeleteFile(FCBIndex file) {
 	FileControlBlock thisFile;
 	LoadFCB(file, &thisFile);
+	if ((thisFile.AccessMode & Access::Delete) == false) {
+		printf("Error:Access denied! File is not removable.\n");
+		return false;
+	}
 	uint8_t* blockBuff = (uint8_t*)malloc(Super.BlockSize);
 	if (thisFile.Type == FileType::File) {
 		vector<BlockIndex> blocks;
@@ -648,11 +720,13 @@ bool DeleteFile(FCBIndex file) {
 				LoadBlock(thisFile.DirectBlock[i], blockBuff);
 				for (uint64_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(FCBIndex)) {
 					if (*(FCBIndex*)(blockBuff + pos) != -1) {
-						DeleteFile(*(FCBIndex*)(blockBuff + pos));
+						DeleteFile(*(FCBIndex*)(blockBuff + pos));//删除文件夹内数据
 					}
 				}
+				DataBitMap->set(thisFile.DirectBlock[i], false);//删除FCB
 			}
 		}
+		FCBBitMap->set(file, false);//删除自身FCB
 	}
 	//删除父目录的记录
 	FCBIndex parentIndex = thisFile.Parent;
@@ -689,4 +763,26 @@ DeleteFile_end:
 
 	free(blockBuff);
 	return false;
+}
+
+bool RenameFile(const string& newName, FCBIndex file)
+{
+	if (file == -1) {
+		return false;
+	}
+	FileControlBlock fcb;
+	LoadFCB(file, &fcb);
+	strcpy(fcb.Name, newName.c_str());
+	memset(fcb.Name + newName.length() + 1, 0, sizeof(FileControlBlock::Name) - newName.length() - 1);
+	StoreFCB(file, &fcb);
+	return true;
+}
+
+bool ChangeAccessMode(FCBIndex file, uint8_t newMode)
+{
+	FileControlBlock fileFCB;
+	LoadFCB(file, &fileFCB);
+	fileFCB.AccessMode = newMode;
+	StoreFCB(file, &fileFCB);
+	return true;
 }
