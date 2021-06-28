@@ -25,44 +25,35 @@ typedef int32_t FCBIndex;
  *
  * super Block 1 Block
  * Bitmap
- * FCBS 1024Block
+ * FCBS
  *
  */
 
-class BiSet {
-public:
-	BiSet(uint32_t size);
-	bool get(uint32_t index);
-	void set(uint32_t index, bool val);
-	~BiSet();
-	uint32_t SizeOfBool;
-	uint32_t SizeOfByte;
-	uint8_t* data = nullptr;
-};
+
 
 class Access {
 public:
-	static uint8_t None;
+	static uint8_t  None;
 	static uint8_t	Read;
 	static uint8_t	Write;
 	static uint8_t	Delete;
+	static uint8_t	All;
 };
 
 
 enum class FileType : uint8_t { File, Directory };
 //超级块（记录盘块信息）
 struct SuperBlock {
-	uint16_t FCS = 0;              //循环校验码
-
+	uint16_t FCS = 0;               //循环校验码
 	char Version[16];				//文件系统版本号
-	uint32_t DiskSize;             //磁盘大小
-	uint32_t BlockSize;            //块大小
-	uint32_t BlockNum;             //块数量(=DISK_SIZE/块大小)
-	BlockIndex FCBBitmapOffset;    // FCB的位示图列表开始块号
-	BlockIndex DataBitmapOffset;   // Data的位示图数据块开始块号
-	BlockIndex FCBOffset;          // FCB列表开始块号
-	BlockIndex DataOffset;         // Data数据块开始块号
-	uint32_t FCBNum, DataBlockNum; // FCB数量和DataBlock数量
+	uint32_t DiskSize;				//磁盘大小
+	uint32_t BlockSize;             //块大小
+	uint32_t BlockNum;              //块数量(=DISK_SIZE/块大小)
+	BlockIndex FCBBitmapOffset;     // FCB的位示图列表开始块号
+	BlockIndex DataBitmapOffset;    // Data的位示图数据块开始块号
+	BlockIndex FCBOffset;           // FCB列表开始块号
+	BlockIndex DataOffset;          // Data数据块开始块号
+	uint32_t FCBNum, DataBlockNum;  // FCB数量和DataBlock数量
 };
 
 
@@ -107,20 +98,21 @@ void FormatDisk(uint32_t blocksize = 1 << 10, uint32_t FCBBlockNum = 0);
 void PrintDiskInfo();
 
 
-FCBIndex CreateDirectory(string name, FCBIndex parent);
-FCBIndex CreateFile(string name, FCBIndex dir);
+FCBIndex CreateDirectory(const string& name, FCBIndex parent);
+FCBIndex CreateFile(const string& name, FCBIndex dir);
 
 
 void PrintDir(FCBIndex dir);
 void PrintInfo(FCBIndex file);
 
 
-FCBIndex Create(string name, FCBIndex dir, enum FileType t);
+FCBIndex Create(const string& name, FCBIndex dir, enum FileType t);
 int64_t ReadFile(FCBIndex file, int64_t pos, int64_t len, uint8_t* buff);
 int64_t WriteFile(FCBIndex file, int64_t pos, int64_t len, const uint8_t* buff);
 bool DeleteFile(FCBIndex file);
+bool RenameFile(const string& newName, FCBIndex file);
+bool ChangeAccessMode(FCBIndex file, uint8_t newMode);
 
-
-FCBIndex Find(FCBIndex dir, string filename);
+FCBIndex Find(FCBIndex dir, const string& filename);
 void FileInfo(FCBIndex file, FileControlBlock* fcb);
 vector<FCBIndex> GetChildren(FCBIndex dir);
