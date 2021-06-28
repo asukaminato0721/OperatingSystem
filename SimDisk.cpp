@@ -13,7 +13,8 @@ char input[1 << 20];
 FCBIndex workDir = 0;
 
 
-int __main() {
+int main() {
+
 	initDisk();
 	if (LoadDisk() == false) {
 		FormatDisk(4 * 1 << 10);
@@ -26,8 +27,6 @@ int __main() {
 		cout << "Input : ";
 		cin.getline(input, 1024);
 		//cout << "in = " << input;
-
-
 		if (memcmp(input, "exit", 4) == 0) {
 			DisMount();
 			return 0;
@@ -43,17 +42,18 @@ int __main() {
 			strcpy(newdir, input + 3);
 			auto  newWD = Find(workDir, newdir);
 			FileControlBlock fcb;
-			FileInfo(newWD, &fcb);
 
 			if (newWD == -1) {
 				cout << "No such Dir" << endl;
 				continue;
 			}
 			else if (fcb.Type == FileType::File) {
+				FileInfo(newWD, &fcb);
 				cout << newdir << " is not a Dir" << endl;
 				continue;
 			}
 			else {
+				FileInfo(newWD, &fcb);
 				workDir = newWD;
 			}
 		}
@@ -71,10 +71,16 @@ int __main() {
 				cout << fileName << " is not a file" << endl;
 				continue;
 			}
-			uint8_t* inFileBuff = (uint8_t*)malloc(fcb.Size);
-			ReadFile(fcbID, 0, fcb.Size, inFileBuff);
-			inFileBuff[fcb.Size + 1] = 0;
+			uint8_t* inFileBuff = (uint8_t*)malloc(fcb.Size + 1);
+			if (-1 == ReadFile(fcbID, 0, fcb.Size, inFileBuff)) {
+				free(inFileBuff);
+				continue;
+			}
+
+			inFileBuff[fcb.Size] = 0;
 			cout << inFileBuff << endl;
+			free(inFileBuff);
+
 		}
 		else if (memcmp(input, "touch", 5) == 0) {
 			char fileName[128];
@@ -162,11 +168,10 @@ int __main() {
 			}
 			if (input[nameEnd + 2] == 'w') {
 				acc = acc | Access::Write;
-			}if (input[nameEnd + 3] == 'd') {
+			}
+			if (input[nameEnd + 3] == 'd') {
 				acc = acc | Access::Delete;
 			}
-
-
 			ChangeAccessMode(Find(workDir, fileName), acc);
 			cout << endl;
 		}

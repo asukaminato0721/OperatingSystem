@@ -18,8 +18,8 @@ bool initDisk() {
 			Disk.write(init, (1 << 10));
 		}
 		Disk.close();
+		Disk.open("./SimDisk.disk", ios::in | ios::out | ios::binary);
 	}
-	Disk.open("./SimDisk.disk", ios::in | ios::out | ios::binary);
 	return true;
 	//Disk = (uint8_t *)malloc(sizeof(uint8_t) * Size);
 	//if (Disk == NULL) {
