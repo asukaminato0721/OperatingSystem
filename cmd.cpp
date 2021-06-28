@@ -28,7 +28,7 @@ char choice;
 vector<string> vc_of_str;
 string s1, s2;
 FCBIndex inum_cur;   //当前文件夹FCB号                                                                                                                                                   // 当前目录
-char temp[10 * BLKSIZE];  //写入缓冲区                                                                                                                                       // 缓冲区
+char temp[100 * BLKSIZE];  //写入缓冲区                                                                                                                                       // 缓冲区
 User user;     //用于缓存内存中的用户                                                                                                                                                 // 当前的用户
 //char bitmap[BLKNUM];                                                                                                                                            // 位图数组
 //Inode inode_array[INODENUM];                                                                                                                                    // i节点数组
@@ -514,7 +514,7 @@ void vi() {
     int i, inum;
     int64_t res;
     string temps1, temps2; int temp_cur;
-    char temp[10 * BLKSIZE];
+    char temp[100 * BLKSIZE];
     uint8_t* buff;
     if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
         temps1 = s2.substr(0, s2.find_last_of('/') + 1);
