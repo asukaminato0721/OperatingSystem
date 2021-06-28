@@ -8,6 +8,30 @@
 #include <iostream>
 #include <vector>
 
+//声明函数
+void login();
+void su(string user_name);
+void init();
+void pathset();
+void help();
+int analyse();
+void cd(string path);
+int readby(string path);
+void ls(string path);
+void mkdir();
+void touch();
+void cat();
+void vi();
+void rm();
+void rmdir();
+void quit();
+void format();
+void free_user();
+void info();
+void copy(string path);
+void errcmd();
+void command();
+
 using namespace std;
 
 #define BLKSIZE 1024  // 数据块的大小
@@ -181,13 +205,13 @@ void pathset()
     else
     {
         FCBIndex temp = inum_cur;
-        FileControlBlock* fcb;
+        FileControlBlock fcb;
         while (temp != 0)
         {
-            FileInfo(temp, fcb);//首次依据当前FCB号
-            s = fcb->Name + s;
+            FileInfo(temp, &fcb);//首次依据当前FCB号
+            s = fcb.Name + s;
             s = '/' + s;
-            temp = fcb->Parent;
+            temp = fcb.Parent;
         }
     }
     cout << user.user_name << "@"
@@ -439,7 +463,7 @@ void mkdir()
         temps2 = s2;
         temp_cur = inum_cur;
     }
-    FCBIndex index = CreateFile(s2, temp_cur);
+    FCBIndex index = CreateFile(temps2, temp_cur);
     if (index != -1) {
         printf("Create Directory Successfully!\n");
     }
@@ -496,10 +520,10 @@ void cat() {
         temp_cur = inum_cur;
     }
     FCBIndex file_cur = Find(temp_cur, s2);
-    FileControlBlock* fcb;
-    FileInfo(file_cur, fcb);
-    uint8_t* buff;
-    int64_t res = ReadFile(file_cur, 0, fcb->Size, buff);//指针类型传指针类型参数不用加&
+    FileControlBlock fcb;
+    FileInfo(file_cur, &fcb);
+    uint8_t* buff = (uint8_t*)malloc(fcb.Size+1);
+    int64_t res = ReadFile(file_cur, 0, fcb.Size, buff);//指针类型传指针类型参数不用加&
     if (res != -1) {
         printf("%s\n", buff);
     }
@@ -514,7 +538,7 @@ void vi() {
     int i, inum;
     int64_t res;
     string temps1, temps2; int temp_cur;
-    char temp[10 * BLKSIZE];
+    char temp[100 * BLKSIZE];
     uint8_t* buff;
     if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
         temps1 = s2.substr(0, s2.find_last_of('/') + 1);
@@ -529,9 +553,9 @@ void vi() {
         temp_cur = inum_cur;
     }
     FCBIndex file_cur = Find(temp_cur, s2);
-    FileControlBlock* fcb;
-    FileInfo(file_cur, fcb);
-    if (fcb->Size == 0) {
+    FileControlBlock fcb;
+    FileInfo(file_cur, &fcb);
+    if (fcb.Size == 0) {
         printf("Please input: \n");
         gets_s(temp);
         res = WriteFile(file_cur, 0, strlen(temp), (uint8_t*)(temp));
@@ -549,7 +573,7 @@ void vi() {
         else if (choice == 'a') {
             printf("Please input: \n");
             gets_s(temp);
-            res = WriteFile(file_cur, fcb->Size + 1, strlen(temp), (uint8_t*)(temp));
+            res = WriteFile(file_cur, fcb.Size + 1, strlen(temp), (uint8_t*)(temp));
         }
         else {
             printf("Exit write!\n");
@@ -591,89 +615,6 @@ void rm(void)
     }
 }
 
-// an exist file
-void cat() {
-    int i, inum;
-    string temps1, temps2; int temp_cur;
-    if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
-        temps1 = s2.substr(0, s2.find_last_of('/') + 1);
-        temps2 = s2.substr(s2.find_last_of('/') + 1);
-        string temps = s2;
-        s2 = temps1;
-        temp_cur = readby(temps1);
-        s2 = temps;
-    }
-    else {
-        temps2 = s2;
-        temp_cur = inum_cur;
-    }
-    FCBIndex file_cur = Find(temp_cur, s2);
-    FileControlBlock* fcb;
-    FileInfo(file_cur, fcb);
-    uint8_t* buff;
-    int64_t res = ReadFile(file_cur, 0, fcb->Size, buff);
-    if (res != -1) {
-        printf("%s\n", buff);
-    }
-    else {
-        printf("Read Fail!\n");
-    }
-
-}
-
-// open and write something to a particular file
-void vi() {
-    int i, inum;
-    int64_t res;
-    string temps1, temps2; int temp_cur;
-    char temp[10 * BLKSIZE];
-    uint8_t* buff;
-    if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
-        temps1 = s2.substr(0, s2.find_last_of('/') + 1);
-        temps2 = s2.substr(s2.find_last_of('/') + 1);
-        string temps = s2;
-        s2 = temps1;
-        temp_cur = readby(temps1);
-        s2 = temps;
-    }
-    else {
-        temps2 = s2;
-        temp_cur = inum_cur;
-    }
-    FCBIndex file_cur = Find(temp_cur, s2);
-    FileControlBlock* fcb;
-    FileInfo(file_cur, fcb);
-    if (fcb->Size == 0) {
-        printf("Please input: \n");
-        gets_s(temp);
-        res = WriteFile(file_cur, 0, strlen(temp), (uint8_t*)(temp));
-    }
-    else {
-        char choice;
-        printf("This file already exist data! \n");
-        printf("Overwrite or append? input o/a:");
-        scanf("%c", &choice);
-        if (choice == 'o') {
-            printf("Please input: \n");
-            gets_s(temp);
-            res = WriteFile(file_cur, 0, strlen(temp), (uint8_t*)(temp));
-        }
-        else if (choice == 'a') {
-            printf("Please input: \n");
-            gets_s(temp);
-            res = WriteFile(file_cur, fcb->Size + 1, strlen(temp), (uint8_t*)(temp));
-        }
-        else {
-            printf("Exit write!\n");
-        }
-        if (res != -1) {
-            printf("Write file successfully!\n");
-        }
-        else {
-            printf("Failed to write!\n");
-        }
-    }
-}
 
 // 功能: 删除文件夹
 void rmdir(void)
@@ -840,9 +781,6 @@ int main(void)
 {
     // format();
     initDisk();
-    if (LoadDisk() == false) {
-        FormatDisk(4 * 1 << 10);
-    }
     login();
     init();
     command();
