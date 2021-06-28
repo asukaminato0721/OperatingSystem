@@ -21,7 +21,9 @@
       this.file_children = {};
     }
   }
-
+  function last<T>(list: T[]): T {
+    return list[list.length - 1];
+  }
   let logo = String.raw`
              _ _                      _          _ _ 
   ___  _ __ | (_)_ __   ___       ___| |__   ___| | |
@@ -31,7 +33,7 @@
 `;
   let 文件树 = new TreeNode("~");
   let 路径历史: TreeNode[] = [文件树];
-  const 目前位置 = () => 路径历史[路径历史.length - 1];
+  const 目前位置 = () => last(路径历史);
   let 走向路径 = (目前地址: TreeNode, 文件夹序列: string[]) => {
     let temp = 路径历史.slice();
     while (文件夹序列.length > 0) {
@@ -48,7 +50,7 @@
       } else {
         if (temp.length > 1) {
           temp.pop();
-          目前地址 = temp[temp.length - 1];
+          目前地址 = last(temp);
         }
       }
     }
@@ -62,7 +64,7 @@
     let 文件夹序列 = path.split("/");
     console.log(文件夹序列);
     try {
-      路径历史 = 走向路径(路径历史[路径历史.length - 1], 文件夹序列);
+      路径历史 = 走向路径(last(路径历史), 文件夹序列);
       return "";
     } catch {
       return "无此目录";
@@ -182,11 +184,11 @@
       "cp",
       (args: string[]) => {
         let from = args[0].split("/");
-        let 源文件名 = from[from.length - 1];
+        let 源文件名 = last(from);
         let to = args[1].split("/");
-        let 终点文件名 = to[to.length - 1];
+        let 终点文件名 = last(to);
         let 起点文件夹 = 走向路径(目前位置(), from.slice(0, -1));
-        let 中转站 = 起点文件夹[起点文件夹.length - 1].file_children[源文件名];
+        let 中转站 = last(起点文件夹).file_children[源文件名];
         if (typeof 中转站 === "undefined") {
           return "无此文件";
         }
@@ -194,9 +196,60 @@
         console.log(`复制成功 后 目前位置 ${JSON.stringify(目前位置())}`);
         let 终点文件夹 = 走向路径(目前位置(), to.slice(0, -1));
 
-        终点文件夹[终点文件夹.length - 1].file_children[终点文件名] =
-          new FileNode(终点文件名, 中转站.content);
+        last(终点文件夹).file_children[终点文件名] = new FileNode(
+          终点文件名,
+          中转站.content
+        );
         return "";
+      },
+    ],
+    [
+      "clear",
+      (args: string[]) => {
+        显示的指令历史 = [
+          {
+            目前指令: "",
+            指令结果: "",
+            当前路径: last(显示的指令历史).当前路径,
+          },
+        ];
+        return "";
+      },
+    ],
+    [
+      "exit",
+      (args: string[]) => {
+        window.close();
+        return "";
+      },
+    ],
+    [
+      "tree",
+      (args: string[]) => {
+        function dfs(
+          root: TreeNode | FileNode,
+          缩进: string = `&nbsp;&nbsp;&nbsp;&nbsp;`
+        ) {
+          if (root instanceof FileNode) {
+            return `<div>${缩进} ${root.name} 文件</div>`;
+          }
+          return `<div>${缩进} ${root.name} 文件夹</div>
+          <div> ${
+            Object.keys(root.dir_children).length !== 0
+              ? Object.values(root.dir_children)
+                  .map((x) => dfs(x, 缩进 + `&nbsp;&nbsp;&nbsp;&nbsp;`))
+                  .join("<br/>")
+              : ""
+          } 
+          </div> <div> ${
+            Object.keys(root.file_children).length !== 0
+              ? `${Object.values(root.file_children)
+                  .map((x) => dfs(x, 缩进 + `&nbsp;&nbsp;&nbsp;&nbsp;`))
+                  .join(`<br/>`)}`
+              : ""
+          } </div>`;
+        }
+        return dfs(目前位置(), `<br/>`);
       },
     ],
   ]);
@@ -225,13 +278,15 @@
         return;
       }
       指令结果 = 计算结果(目前指令);
-      显示的指令历史[显示的指令历史.length - 1].目前指令 = 目前指令;
-      显示的指令历史[显示的指令历史.length - 1].指令结果 = 指令结果;
-      显示的指令历史.push({
-        目前指令: "",
-        指令结果: "",
-        当前路径: 路径历史.concat(),
-      });
+      if (目前指令 !== "clear") {
+        显示的指令历史[显示的指令历史.length - 1].目前指令 = 目前指令;
+        显示的指令历史[显示的指令历史.length - 1].指令结果 = 指令结果;
+        显示的指令历史.push({
+          目前指令: "",
+          指令结果: "",
+          当前路径: 路径历史.concat(),
+        });
+      }
       目前指令 = "";
       指令结果 = "";
     }
@@ -240,6 +295,7 @@
 </script>
 
 <svelte:window on:keydown={按键按下} />
+
 <a
   target="_blank"
   href="https://github.com/wuyudi/OperatingSystem/tree/online-demo#%E4%B8%80%E4%B8%AA-shell-%E7%9A%84%E5%9C%A8%E7%BA%BF%E6%A8%A1%E6%8B%9F%E5%99%A8"
@@ -265,6 +321,6 @@
   <input bind:value={目前指令} style="width:100%" />
   {@html 指令结果}
 </div>
-{#each 显示的指令历史 as i}
+<!-- {#each 显示的指令历史 as i}
   <div>{JSON.stringify(i)}</div>
-{/each}
+{/each} -->

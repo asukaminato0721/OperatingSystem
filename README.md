@@ -4,7 +4,7 @@
 
 课设
 
-online-demo
+[online-demo](https://wuyudi.github.io/OperatingSystem/)
 
 目前支持的命令:
 
@@ -19,4 +19,7 @@ echo content >> file
 touch file1 file2 ...
 rm file1 file2 ...
 cp folder/folder2/../file_from folder/folder1/../file_to
+clear
+exit
+tree
 ```
