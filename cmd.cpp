@@ -205,13 +205,13 @@ void pathset()
     else
     {
         FCBIndex temp = inum_cur;
-        FileControlBlock* fcb;
+        FileControlBlock fcb;
         while (temp != 0)
         {
-            FileInfo(temp, fcb);//首次依据当前FCB号
-            s = fcb->Name + s;
+            FileInfo(temp, &fcb);//首次依据当前FCB号
+            s = fcb.Name + s;
             s = '/' + s;
-            temp = fcb->Parent;
+            temp = fcb.Parent;
         }
     }
     cout << user.user_name << "@"
@@ -520,10 +520,10 @@ void cat() {
         temp_cur = inum_cur;
     }
     FCBIndex file_cur = Find(temp_cur, s2);
-    FileControlBlock* fcb;
-    FileInfo(file_cur, fcb);
-    uint8_t* buff;
-    int64_t res = ReadFile(file_cur, 0, fcb->Size, buff);//指针类型传指针类型参数不用加&
+    FileControlBlock fcb;
+    FileInfo(file_cur, &fcb);
+    uint8_t* buff = (uint8_t*)malloc(fcb.Size+1);
+    int64_t res = ReadFile(file_cur, 0, fcb.Size, buff);//指针类型传指针类型参数不用加&
     if (res != -1) {
         printf("%s\n", buff);
     }
@@ -553,9 +553,9 @@ void vi() {
         temp_cur = inum_cur;
     }
     FCBIndex file_cur = Find(temp_cur, s2);
-    FileControlBlock* fcb;
-    FileInfo(file_cur, fcb);
-    if (fcb->Size == 0) {
+    FileControlBlock fcb;
+    FileInfo(file_cur, &fcb);
+    if (fcb.Size == 0) {
         printf("Please input: \n");
         gets_s(temp);
         res = WriteFile(file_cur, 0, strlen(temp), (uint8_t*)(temp));
@@ -573,7 +573,7 @@ void vi() {
         else if (choice == 'a') {
             printf("Please input: \n");
             gets_s(temp);
-            res = WriteFile(file_cur, fcb->Size + 1, strlen(temp), (uint8_t*)(temp));
+            res = WriteFile(file_cur, fcb.Size + 1, strlen(temp), (uint8_t*)(temp));
         }
         else {
             printf("Exit write!\n");
@@ -781,9 +781,6 @@ int main(void)
 {
     // format();
     initDisk();
-    if (LoadDisk() == false) {
-        FormatDisk(4 * 1 << 10);
-    }
     login();
     init();
     command();
