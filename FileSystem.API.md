@@ -71,7 +71,7 @@
 - `FCBIndex Parent` 父目录的 FCB 号。根目录的 FCB 号永远为`0`
 - `BlockIndex DirectBlock[10]` `10`个直接索引块，若不使用，则置为`-1`
 - `BlockIndex Pointer` `1` 个一级间接索引块，若不使用，则置为`-1`
-- `uint8_t \_\_padding[6]` 字节填充区，将`FileControlBlock`扩充为`128`字节，无实际作用
+- `uint8_t __padding[6]` 字节填充区，将`FileControlBlock`扩充为`128`字节，无实际作用
 
 ### struct SuperBlock
 
