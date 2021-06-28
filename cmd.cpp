@@ -463,7 +463,7 @@ void mkdir()
         temps2 = s2;
         temp_cur = inum_cur;
     }
-    FCBIndex index = CreateFile(s2, temp_cur);
+    FCBIndex index = CreateFile(temps2, temp_cur);
     if (index != -1) {
         printf("Create Directory Successfully!\n");
     }
