@@ -102,7 +102,7 @@ void login()
             {
                 fclose(fp);
                 printf("\n");
-                //CreateDirectory(user.user_name, 0);//在根目录下创建用户文件夹，仅供该用户使用，文件系统更改为存入硬盘，登录时无需重新创建
+                CreateDirectory(user.user_name, 0);//在根目录下创建用户文件夹，仅供该用户使用，文件系统更改为存入硬盘，登录时无需重新创建
                 cd(user.user_name);//进入用户文件夹
                 return; //登陆成功，直接跳出登陆函数
             }
@@ -144,7 +144,7 @@ void login()
 }
 
 //功能: 切换当前用户包含了login和logout
-void su(string user_name) {//待修改
+void su(string user_name) {
     char* p;
     int flag;
     //string user_name;
@@ -256,7 +256,7 @@ int analyse()
         else
         { //输入存在空格，表示存在参数
             while (!s1.empty() && s1.back() == ' ')
-            {                                       // s1末尾为空格，还未读取参数
+            {                                       // s1末尾为空格(s1.back())，还未读取参数
                 s1 = s1.substr(0, s1.length() - 1); //将s1的命令部分提取出
             }
             while (!s1.empty() > 0 && s1.front() == ' ')
@@ -530,7 +530,7 @@ void cat() {
     else {
         printf("Read Fail!\n");
     }
-
+    free(buff);
 }
 
 // open and write something to a particular file
