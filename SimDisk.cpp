@@ -13,7 +13,7 @@ char input[1 << 20];
 FCBIndex workDir = 0;
 
 #define NEG(x) (-x)
-int main() {
+int _main() {
 	if (fs_init() == false) {
 		cout << "Format Disk\n";
 		FormatDisk(4 * 1 << 10);

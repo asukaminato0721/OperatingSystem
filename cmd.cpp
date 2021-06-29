@@ -590,16 +590,16 @@ void vi() {
         else if (choice == 'a') {
             printf("Please input: ");//这里不要加换行符
             gets_s(temp);
-            res = WriteFile(file_cur, fcb.Size - 2, strlen((char*)(temp)), (uint8_t*)(temp));//fcb.Size不需要+1，从0开始
+            res = WriteFile(file_cur, fcb.Size, strlen((char*)(temp)), (uint8_t*)(temp));//fcb.Size不需要+1，从0开始
 
-            //测试
-            FileInfo(file_cur, &fcb);//根据查找到的FCB号获得文件FCB
-            uint8_t* buff = (uint8_t*)malloc(fcb.Size + 1);//多加一个字节，增加‘\0’
-            ReadFile(file_cur, 0, fcb.Size, buff);//指针类型传指针类型参数不用加&
-            buff[fcb.Size] = '\0';//
-            if (res != -1) {
-                printf("%s\n", buff);
-            }
+            ////测试
+            //FileInfo(file_cur, &fcb);//根据查找到的FCB号获得文件FCB
+            //uint8_t* buff = (uint8_t*)malloc(fcb.Size + 1);//多加一个字节，增加‘\0’
+            //ReadFile(file_cur, 0, fcb.Size, buff);//指针类型传指针类型参数不用加&
+            //buff[fcb.Size] = '\0';//
+            //if (res != -1) {
+            //    printf("%s\n", buff);
+            //}
 
         }
         else {
