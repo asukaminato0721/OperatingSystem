@@ -402,7 +402,7 @@ var app = (function () {
     	return child_ctx;
     }
 
-    // (288:0) {#each 显示的指令历史 as 指令}
+    // (308:0) {#each 显示的指令历史 as 指令}
     function create_each_block(ctx) {
     	let t0;
     	let div0;
@@ -426,9 +426,9 @@ var app = (function () {
     			t3 = text(t3_value);
     			t4 = space();
     			div2 = element("div");
-    			add_location(div0, file, 289, 2, 7805);
-    			add_location(div1, file, 292, 2, 7865);
-    			add_location(div2, file, 293, 2, 7888);
+    			add_location(div0, file, 309, 2, 8458);
+    			add_location(div1, file, 312, 2, 8518);
+    			add_location(div2, file, 313, 2, 8541);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, t0, anchor);
@@ -459,7 +459,7 @@ var app = (function () {
     		block,
     		id: create_each_block.name,
     		type: "each",
-    		source: "(288:0) {#each 显示的指令历史 as 指令}",
+    		source: "(308:0) {#each 显示的指令历史 as 指令}",
     		ctx
     	});
 
@@ -506,18 +506,18 @@ var app = (function () {
     			t4 = space();
     			attr_dev(a, "target", "_blank");
     			attr_dev(a, "href", "https://github.com/wuyudi/OperatingSystem/tree/online-demo#%E4%B8%80%E4%B8%AA-shell-%E7%9A%84%E5%9C%A8%E7%BA%BF%E6%A8%A1%E6%8B%9F%E5%99%A8");
-    			add_location(a, file, 276, 0, 7410);
+    			add_location(a, file, 296, 0, 8063);
     			set_style(textarea, "font-family", "Consolas");
     			set_style(textarea, "height", "10rem");
     			set_style(textarea, "width", "80rem");
     			set_style(textarea, "border-color", "transparent");
     			textarea.value = /*logo*/ ctx[3];
-    			add_location(textarea, file, 282, 2, 7598);
-    			add_location(div0, file, 281, 0, 7590);
+    			add_location(textarea, file, 302, 2, 8251);
+    			add_location(div0, file, 301, 0, 8243);
     			set_style(input, "width", "100%");
-    			add_location(input, file, 298, 2, 7939);
+    			add_location(input, file, 318, 2, 8592);
     			html_tag = new HtmlTag(null);
-    			add_location(div1, file, 297, 0, 7931);
+    			add_location(div1, file, 317, 0, 8584);
     		},
     		l: function claim(nodes) {
     			throw new Error_1("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -543,7 +543,7 @@ var app = (function () {
     			if (!mounted) {
     				dispose = [
     					listen_dev(window_1, "keydown", /*按键按下*/ ctx[4], false, false, false),
-    					listen_dev(input, "input", /*input_input_handler*/ ctx[6])
+    					listen_dev(input, "input", /*input_input_handler*/ ctx[5])
     				];
 
     				mounted = true;
@@ -615,19 +615,19 @@ var app = (function () {
     function instance($$self, $$props, $$invalidate) {
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots("App", slots, []);
+    	var Type;
 
-    	class FileNode {
-    		constructor(name, content) {
-    			this.name = name;
-    			this.content = content !== null && content !== void 0 ? content : "";
-    		}
-    	}
+    	(function (Type) {
+    		Type[Type["File"] = 0] = "File";
+    		Type[Type["Folder"] = 1] = "Folder";
+    	})(Type || (Type = {}));
 
-    	class TreeNode {
-    		constructor(name) {
+    	class Node {
+    		constructor(name, type, content) {
     			this.name = name;
-    			this.dir_children = {};
-    			this.file_children = {};
+    			this.type = type;
+    			this.content = content;
+    			this.children = {};
     		}
     	}
 
@@ -639,7 +639,7 @@ var app = (function () {
  \___/|_| |_|_|_|_| |_|\___|     |___/_| |_|\___|_|_|
 `;
 
-    	let 文件树 = new TreeNode("~");
+    	let 文件树 = new Node("~", Type.Folder);
     	let 路径历史 = [文件树];
     	const 目前位置 = () => last(路径历史);
 
@@ -651,9 +651,9 @@ var app = (function () {
     			let next = 文件夹序列.shift();
 
     			if (next !== "..") {
-    				目前地址 = 目前地址.dir_children[next];
+    				目前地址 = 目前地址.children[next];
 
-    				if (typeof 目前地址 === "undefined") {
+    				if (typeof 目前地址 === "undefined" || 目前地址.type === Type.File) {
     					console.log("can't get to");
     					throw new Error("can't get to");
     				} else {
@@ -680,7 +680,7 @@ var app = (function () {
     		console.log(文件夹序列);
 
     		try {
-    			$$invalidate(5, 路径历史 = 走向路径(last(路径历史), 文件夹序列));
+    			路径历史 = 走向路径(last(路径历史), 文件夹序列);
     			return "";
     		} catch(_a) {
     			return "无此目录";
@@ -691,14 +691,24 @@ var app = (function () {
     			[
     				"ls",
     				args => {
-    					return Object.keys(目前位置().dir_children).map(child => `<div> ${child}  文件夹</div>`).join(" ") + Object.keys(目前位置().file_children).map(child => `<div> ${child}  文件</div>`).join(" ");
+    					return Object.values(目前位置().children).map(child => `<div> ${child.name}  ${child.type === Type.Folder ? `文件夹` : `文件`}</div>`).join(" ");
     				}
     			],
     			[
     				"mkdir",
-    				name => {
-    					name.map(name => 目前位置().dir_children[name] = new TreeNode(name));
-    					return "";
+    				names => {
+    					const 返回 = [];
+    					const 已存在 = new Set(Object.keys(目前位置().children));
+
+    					names.map(name => {
+    						if (已存在.has(name)) {
+    							返回.push(`mkdir: 无法创建目录 “${name}”: 文件已存在`);
+    						} else {
+    							目前位置().children[name] = new Node(name, Type.Folder);
+    						}
+    					});
+
+    					return 返回.join("</br>");
     				}
     			],
     			[
@@ -716,9 +726,9 @@ var app = (function () {
 
     						return "";
     					} else if (!path.includes("/")) {
-    						let 下一站 = 目前位置().dir_children[path];
+    						let 下一站 = 目前位置().children[path];
 
-    						if (typeof 下一站 !== "undefined") {
+    						if (typeof 下一站 !== "undefined" && 下一站.type === Type.Folder) {
     							路径历史.push(下一站);
     							console.log("新建成功");
     							return "";
@@ -734,9 +744,19 @@ var app = (function () {
     			],
     			[
     				"touch",
-    				args => {
-    					args.map(arg => 目前位置().file_children[arg] = new FileNode(arg));
-    					return "创建完成";
+    				names => {
+    					const 返回 = [];
+    					const 已存在 = new Set(Object.keys(目前位置().children));
+
+    					names.map(name => {
+    						if (已存在.has(name)) {
+    							返回.push(`touch: 无法创建目录 “${name}”: 文件已存在`);
+    						} else {
+    							目前位置().children[name] = new Node(name, Type.File);
+    						}
+    					});
+
+    					return 返回.join("</br>");
     				}
     			],
     			[
@@ -744,8 +764,8 @@ var app = (function () {
     				args => {
     					let arg = args[0];
 
-    					if (目前位置().file_children.hasOwnProperty(arg)) {
-    						return 目前位置().file_children[arg].content;
+    					if (目前位置().children.hasOwnProperty(arg) && 目前位置().children[arg].type === Type.File) {
+    						return 目前位置().children[arg].content;
     					} else {
     						return `cat: ${arg}: 没有那个文件`;
     					}
@@ -758,38 +778,51 @@ var app = (function () {
      * 和 `echo aaa >> file`
      */
     				args => {
+    					/*
+    1. 存在，是 folder
+    2. 存在，是 file
+    3. 不存在
+    */
     					let 写入内容 = args[0];
+
     					let 目标文件 = args[2];
-    					let 文件 = 目前位置().file_children[目标文件];
+    					let 文件 = 目前位置().children[目标文件];
 
-    					if (目前位置().file_children.hasOwnProperty(目标文件)) {
-    						目前位置().file_children[目标文件] = new FileNode(目标文件, 写入内容);
-    						return "";
+    					if (目前位置().children.hasOwnProperty(目标文件) && 文件.type === Type.Folder) {
+    						return `是一个目录: ${目标文件}`;
     					}
 
-    					if (args[1] === ">") {
-    						文件.content = 写入内容;
+    					if (!目前位置().children.hasOwnProperty(目标文件)) {
+    						目前位置().children[目标文件] = new Node(目标文件, Type.File, 写入内容);
     						return "写入成功";
-    					}
+    					} else {
+    						if (args[1] === ">") {
+    							文件.content = 写入内容;
+    							return "写入成功";
+    						}
 
-    					if (args[1] === ">>") {
-    						文件.content += 写入内容;
-    						return "追加成功";
+    						if (args[1] === ">>") {
+    							文件.content += 写入内容;
+    							return "追加成功";
+    						}
     					}
-    				}
-    			],
-    			[
-    				"rmdir",
-    				args => {
-    					[...new Set(args)].map(arg => delete 目前位置().dir_children[arg]);
-    					return "删除成功";
     				}
     			],
     			[
     				"rm",
     				args => {
-    					[...new Set(args)].map(arg => delete 目前位置().file_children[arg]);
-    					return "删除成功";
+    					const 返回值 = [];
+    					const 当前有的 = new Set(Object.keys(目前位置().children));
+
+    					[...new Set(args)].map(arg => {
+    						if (当前有的.has(arg)) {
+    							delete 目前位置().children[arg];
+    						} else {
+    							返回值.push(`rm: 无法删除 '${arg}': 没有那个文件或目录`);
+    						}
+    					});
+
+    					return 返回值.join(`</br>`);
     				}
     			],
     			[
@@ -800,7 +833,7 @@ var app = (function () {
     					let to = args[1].split("/");
     					let 终点文件名 = last(to);
     					let 起点文件夹 = 走向路径(目前位置(), from.slice(0, -1));
-    					let 中转站 = last(起点文件夹).file_children[源文件名];
+    					let 中转站 = last(起点文件夹).children[源文件名];
 
     					if (typeof 中转站 === "undefined") {
     						return "无此文件";
@@ -809,7 +842,8 @@ var app = (function () {
     					console.log("复制成功");
     					console.log(`复制成功 后 目前位置 ${JSON.stringify(目前位置())}`);
     					let 终点文件夹 = 走向路径(目前位置(), to.slice(0, -1));
-    					last(终点文件夹).file_children[终点文件名] = new FileNode(终点文件名, 中转站.content);
+    					last(终点文件夹).children[终点文件名] = 中转站;
+    					last(终点文件夹).children[终点文件名].name = 终点文件名;
     					return "";
     				}
     			],
@@ -838,17 +872,13 @@ var app = (function () {
     				"tree",
     				args => {
     					function dfs(root, 缩进 = `&nbsp;&nbsp;&nbsp;&nbsp;`) {
-    						if (root instanceof FileNode) {
+    						if (root.type === Type.File) {
     							return `<div>${缩进} ${root.name} 文件</div>`;
     						}
 
     						return `<div>${缩进} ${root.name} 文件夹</div>
-          <div> ${Object.keys(root.dir_children).length !== 0
-						? Object.values(root.dir_children).map(x => dfs(x, 缩进 + `&nbsp;&nbsp;&nbsp;&nbsp;`)).join("<br/>")
-						: ""} 
-          </div> <div> ${Object.keys(root.file_children).length !== 0
-						? `${Object.values(root.file_children).map(x => dfs(x, 缩进 + `&nbsp;&nbsp;&nbsp;&nbsp;`)).join(`<br/>`)}`
-						: ""} </div>`;
+          <div> ${Object.values(root.children).map(x => dfs(x, 缩进 + `&nbsp;&nbsp;&nbsp;&nbsp;`)).join("<br/>")} 
+          </div>`;
     					}
 
     					return dfs(目前位置(), `<br/>`);
@@ -906,8 +936,8 @@ var app = (function () {
     	}
 
     	$$self.$capture_state = () => ({
-    		FileNode,
-    		TreeNode,
+    		Type,
+    		Node,
     		last,
     		logo,
     		文件树,
@@ -924,9 +954,10 @@ var app = (function () {
     	});
 
     	$$self.$inject_state = $$props => {
+    		if ("Type" in $$props) Type = $$props.Type;
     		if ("logo" in $$props) $$invalidate(3, logo = $$props.logo);
     		if ("文件树" in $$props) 文件树 = $$props.文件树;
-    		if ("路径历史" in $$props) $$invalidate(5, 路径历史 = $$props.路径历史);
+    		if ("路径历史" in $$props) 路径历史 = $$props.路径历史;
     		if ("走向路径" in $$props) 走向路径 = $$props.走向路径;
     		if ("指令映射" in $$props) 指令映射 = $$props.指令映射;
     		if ("目前指令" in $$props) $$invalidate(0, 目前指令 = $$props.目前指令);
@@ -938,16 +969,7 @@ var app = (function () {
     		$$self.$inject_state($$props.$$inject);
     	}
 
-    	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*路径历史*/ 32) {
-    			{
-    				$$invalidate(5, 路径历史);
-    				console.log(路径历史);
-    			}
-    		}
-    	};
-
-    	return [目前指令, 显示的指令历史, 指令结果, logo, 按键按下, 路径历史, input_input_handler];
+    	return [目前指令, 显示的指令历史, 指令结果, logo, 按键按下, input_input_handler];
     }
 
     class App extends SvelteComponentDev {
