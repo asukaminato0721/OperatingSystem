@@ -102,7 +102,7 @@ void login()
             {
                 fclose(fp);
                 printf("\n");
-                CreateDirectory(user.user_name, 0);//在根目录下创建用户文件夹，仅供该用户使用，文件系统更改为存入硬盘，登录时无需重新创建
+                //CreateDirectory(user.user_name, 0);//在根目录下创建用户文件夹，仅供该用户使用，文件系统更改为存入硬盘，登录时无需重新创建
                 cd(user.user_name);//进入用户文件夹
                 return; //登陆成功，直接跳出登陆函数
             }
@@ -779,7 +779,7 @@ void command(void)
 // 主函数
 int main(void)
 {
-    // format();
+    //format();
     initDisk();
     login();
     init();
