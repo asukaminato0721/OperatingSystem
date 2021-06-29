@@ -465,7 +465,7 @@ void mkdir()
         temps2 = s2;
         temp_cur = inum_cur;
     }
-    FCBIndex index = CreateFile(temps2, temp_cur);
+    FCBIndex index = CreateDirectory(temps2, temp_cur);
     if (index != -1) {
         printf("Create Directory Successfully!\n");
     }
@@ -518,14 +518,15 @@ void cat() {
         s2 = temps;
     }
     else {
-        temps2 = s2;
+        temps2 = s2;//将文件名缓存到temps2中
         temp_cur = inum_cur;
     }
     FCBIndex file_cur = Find(temp_cur, s2);
     FileControlBlock fcb;
     FileInfo(file_cur, &fcb);
-    uint8_t* buff = (uint8_t*)malloc(fcb.Size+1);
+    uint8_t* buff = (uint8_t*)malloc(fcb.Size+1);//多加一个字节，增加‘\0’
     int64_t res = ReadFile(file_cur, 0, fcb.Size, buff);//指针类型传指针类型参数不用加&
+    buff[fcb.Size] = '\0';//
     if (res != -1) {
         printf("%s\n", buff);
     }
@@ -540,8 +541,9 @@ void vi() {
     int i, inum;
     int64_t res;
     string temps1, temps2; int temp_cur;
-    char temp[10 * BLKSIZE];
+    char temp[5 * BLKSIZE];
     uint8_t* buff;
+    //uint8_t* temp;
     if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
         temps1 = s2.substr(0, s2.find_last_of('/') + 1);
         temps2 = s2.substr(s2.find_last_of('/') + 1);
@@ -554,28 +556,29 @@ void vi() {
         temps2 = s2;
         temp_cur = inum_cur;
     }
-    FCBIndex file_cur = Find(temp_cur, s2);
+    FCBIndex file_cur = Find(temp_cur, s2);//根据当前文件夹号，和文件名查找文件FCB号
     FileControlBlock fcb;
-    FileInfo(file_cur, &fcb);
+    FileInfo(file_cur, &fcb);//根据查找到的FCB号获得文件FCB
     if (fcb.Size == 0) {
-        printf("Please input: \n");
+        printf("Please input: ");//这里不要加换行符
         gets_s(temp);
-        res = WriteFile(file_cur, 0, strlen(temp), (uint8_t*)(temp));
+        res = WriteFile(file_cur, 0, strlen((char*)(temp)), (uint8_t*)(temp));
     }
     else {
         char choice;
         printf("This file already exist data! \n");
         printf("Overwrite or append? input o/a:");
         scanf("%c", &choice);
+        getchar();//scanf后需要加这句，吸收回车键，否则会将回车直接存到后面的temp缓存中
         if (choice == 'o') {
-            printf("Please input: \n");
+            printf("Please input: ");//这里不要加换行符
             gets_s(temp);
-            res = WriteFile(file_cur, 0, strlen(temp), (uint8_t*)(temp));
+            res = WriteFile(file_cur, 0, strlen((char*)(temp)), (uint8_t*)(temp));
         }
         else if (choice == 'a') {
-            printf("Please input: \n");
+            printf("Please input: ");//这里不要加换行符
             gets_s(temp);
-            res = WriteFile(file_cur, fcb.Size + 1, strlen(temp), (uint8_t*)(temp));
+            res = WriteFile(file_cur, fcb.Size , strlen((char*)(temp)), (uint8_t*)(temp));//fcb.Size不需要+1，从0开始
         }
         else {
             printf("Exit write!\n");
@@ -734,7 +737,8 @@ void copy(string path) {
     }
 
 
-    int i, tar_temp_cur;
+    //int i, tar_temp_cur;
+    int tar_temp_cur;
     string tar_temps1, tar_temps2, target_dir;
     // copy到的目录
     if (path_tar.back() != '/') {
@@ -792,7 +796,7 @@ void command(void)
             printf("\n");
             break;
         case 0:
-            help();
+            help();//命令帮助
             break;
         case 1:
             cd(s2);
@@ -819,7 +823,7 @@ void command(void)
             // close();
             break;
         case 9:
-            rm();  // delete file
+            rm();  // 删除文件
             break;
         case 10:
             su(s2);
@@ -840,7 +844,7 @@ void command(void)
             rmdir();//删除文件夹
             break;
         case 15:
-            info();
+            info();//显示磁盘信息
             break;
         case 16:
             copy(s2);
