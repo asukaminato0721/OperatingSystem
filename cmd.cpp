@@ -653,9 +653,11 @@ void quit()
     printf("Do you want to exist(y/n):");
     scanf("%c", &choice);
     gets_s(temp);
-    if ((choice == 'y') || (choice == 'Y'))
+    if ((choice == 'y') || (choice == 'Y')) {
         DismountDisk();//将缓存中的内容写入磁盘
         exit(-1);
+    }
+
 }
 
 //cmd下的format函数，包括用户的的格式化
@@ -784,7 +786,12 @@ int main(void)
 {
     initDisk();//初始化文件指针等，使得所有操作能够写入磁盘
     //format();
-    LoadDisk();//挂载磁盘，将磁盘的超级块等控制信息放入内存，没有format()，必须要有这一步
+    bool flag = LoadDisk();//挂载磁盘，将磁盘的超级块等控制信息放入内存，没有format()，必须要有这一步
+    if (flag == false)
+    {
+        printf("lodedisk file!\n");
+        return 0;
+    }
     init();
     login();
     command();
