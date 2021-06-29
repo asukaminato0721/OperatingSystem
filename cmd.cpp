@@ -54,11 +54,7 @@ char choice;
 string s1, s2;
 FCBIndex inum_cur;   //当前文件夹FCB号                                                                                                                                                   // 当前目录
 char temp[10 * BLKSIZE];  //写入缓冲区                                                                                                                                       // 缓冲区
-User user;     //用于缓存内存中的用户                                                                                                                                                 // 当前的用户
-//char bitmap[BLKNUM];                                                                                                                                            // 位图数组
-//Inode inode_array[INODENUM];                                                                                                                                    // i节点数组
-                                                                                                                               // 打开文件表数组
-//char image_name[10] = "hd.dat";                                                                                                                                 // 文件系统名称
+User user;     //用于缓存内存中的用户                                                                                                                                                 // 当前的用户                                                                                                                             // 文件系统名称
 FILE* fp;                                                                                                                                                       // 打开文件指针
 vector<string> Commands = { "help", "cd", "ls", "mkdir", "touch", "open", "cat", "vi", "close", "rm", "su", "clear", "format", "exit", "rmdir", "info", "copy" }; // 17个
 
