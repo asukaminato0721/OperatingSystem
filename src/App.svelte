@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { writable } from "svelte/store";
   enum Type {
     File,
     Folder,
@@ -27,7 +28,8 @@
 | (_) | | | | | | | | |  __/_____\__ \ | | |  __/ | |
  \___/|_| |_|_|_|_| |_|\___|     |___/_| |_|\___|_|_|
 `;
-  let 文件树 = new Node("~", Type.Folder);
+  let 文件树 =
+    JSON.parse(localStorage.getItem("在线终端")) ?? new Node("~", Type.Folder);
   let 路径历史: Node[] = [文件树];
   const 目前位置 = () => last(路径历史);
   let 走向路径 = (目前地址: Node, 文件夹序列: string[]) => {
@@ -324,6 +326,11 @@
   href="https://github.com/wuyudi/OperatingSystem/tree/online-demo#%E4%B8%80%E4%B8%AA-shell-%E7%9A%84%E5%9C%A8%E7%BA%BF%E6%A8%A1%E6%8B%9F%E5%99%A8"
   >帮助</a
 >
+<button
+  on:click={() => localStorage.setItem("在线终端", JSON.stringify(文件树))}
+>
+  保存
+</button>
 <div>
   <textarea
     style="font-family: Consolas;height: 10rem;width: 80rem;border-color: transparent; "
