@@ -14,21 +14,19 @@ FCBIndex workDir = 0;
 
 
 int main() {
-
 	initDisk();
 	if (LoadDisk() == false) {
 		FormatDisk(4 * 1 << 10);
 	}
-
-
 	PrintDiskInfo();
+
 	while (true)
 	{
 		cout << "Input : ";
 		cin.getline(input, 1024);
 		//cout << "in = " << input;
 		if (memcmp(input, "exit", 4) == 0) {
-			DisMount();
+			DismountDisk();
 			return 0;
 		}
 		else if (memcmp(input, "stat", 4) == 0) {
@@ -47,13 +45,13 @@ int main() {
 				cout << "No such Dir" << endl;
 				continue;
 			}
-			else if (fcb.Type == FileType::File) {
-				FileInfo(newWD, &fcb);
+			FileInfo(newWD, &fcb);
+
+			if (fcb.Type == FileType::File) {
 				cout << newdir << " is not a Dir" << endl;
 				continue;
 			}
 			else {
-				FileInfo(newWD, &fcb);
 				workDir = newWD;
 			}
 		}
@@ -76,9 +74,28 @@ int main() {
 				free(inFileBuff);
 				continue;
 			}
-
 			inFileBuff[fcb.Size] = 0;
-			cout << inFileBuff << endl;
+			bool isPrintable = true;
+			for (size_t i = 0; i < fcb.Size; i++)
+			{
+				if ((inFileBuff[i] > 0x1f && inFileBuff[i] != 0x7f) == false && inFileBuff[i] != '\n' && inFileBuff[i] != '\r' && inFileBuff[i] != '\t' && inFileBuff[i] != '\v') {
+					isPrintable = false;
+					break;
+				}
+			}
+			if (isPrintable == true) {
+				cout << inFileBuff << endl;
+			}
+			else {
+				for (size_t i = 0; i < fcb.Size; i++)
+				{
+					printf("%02X ", inFileBuff[i]);
+					if ((i - 1) % 64 == 0) {
+						cout << endl;
+					}
+				}
+				cout << endl;
+			}
 			free(inFileBuff);
 
 		}

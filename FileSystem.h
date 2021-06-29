@@ -75,6 +75,9 @@ struct FileControlBlock {
 
 bool LoadDisk();
 void FormatDisk(uint32_t blocksize = 1 << 10, uint32_t FCBBlockNum = 0);
+void DismountDisk();
+
+
 void PrintDiskInfo();
 
 

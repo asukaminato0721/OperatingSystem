@@ -33,7 +33,6 @@ public:
 	uint8_t* data = nullptr;
 }*FCBBitMap, * DataBitMap;
 
-
 //Tool Functions
 
 FileControlBlock::FileControlBlock() {}
@@ -75,20 +74,71 @@ static inline FCBIndex GetEmptyFCB() {
 
 }
 
-
-static inline uint16_t& BlockSize(uint8_t* blockBuff) { return ((Block*)blockBuff)->Size; }
-static inline uint16_t& BlockFCS(uint8_t* blockBuff) { return ((Block*)blockBuff)->FCS; }
+//FCB cache
+#define FCB_CACHE_SIZE 32
+FileControlBlock FCB_Cache[FCB_CACHE_SIZE];
+FCBIndex FCB_Cache_Index[FCB_CACHE_SIZE] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+bool FCB_Cache_Dirty[FCB_CACHE_SIZE];
 static inline void LoadFCB(FCBIndex index, FileControlBlock* buff) {
 	assert(index != -1);
-	ReadDisk((uint8_t*)buff, (uint64_t)Super.FCBOffset * Super.BlockSize + (uint64_t)index * FILE_CONTROL_BLOCK_SIZE, FILE_CONTROL_BLOCK_SIZE);
-	buff->ReadTime = time(NULL);
+
+	if (FCB_Cache_Index[index % FCB_CACHE_SIZE] == index) {//Cache命中
+		FCB_Cache[index % FCB_CACHE_SIZE].ReadTime = time(NULL);
+		memcpy(buff, &FCB_Cache[index % FCB_CACHE_SIZE], FILE_CONTROL_BLOCK_SIZE);
+	}
+	else if (FCB_Cache_Index[index % FCB_CACHE_SIZE] != -1 && FCB_Cache_Dirty[index % FCB_CACHE_SIZE] == false) {//Cache被占用，且是脏数据，保存后替换
+		//原Cache脏数据，先保存
+		WriteDisk((uint8_t*)&FCB_Cache[index % FCB_CACHE_SIZE], (uint64_t)Super.FCBOffset * Super.BlockSize + (uint64_t)FCB_Cache_Index[index % FCB_CACHE_SIZE] * FILE_CONTROL_BLOCK_SIZE, FILE_CONTROL_BLOCK_SIZE);
+
+		ReadDisk((uint8_t*)&FCB_Cache[index % FCB_CACHE_SIZE], (uint64_t)Super.FCBOffset * Super.BlockSize + (uint64_t)index * FILE_CONTROL_BLOCK_SIZE, FILE_CONTROL_BLOCK_SIZE);
+		FCB_Cache[index % FCB_CACHE_SIZE].ReadTime = time(NULL);
+		memcpy(buff, &FCB_Cache[index % FCB_CACHE_SIZE], FILE_CONTROL_BLOCK_SIZE);
+
+		FCB_Cache_Index[index % FCB_CACHE_SIZE] = index;
+		FCB_Cache_Dirty[index % FCB_CACHE_SIZE] = false;
+
+
+	}
+	else {//Cache缺失，直接装入
+		ReadDisk((uint8_t*)&FCB_Cache[index % FCB_CACHE_SIZE], (uint64_t)Super.FCBOffset * Super.BlockSize + (uint64_t)index * FILE_CONTROL_BLOCK_SIZE, FILE_CONTROL_BLOCK_SIZE);
+		FCB_Cache[index % FCB_CACHE_SIZE].ReadTime = time(NULL);
+		memcpy(buff, &FCB_Cache[index % FCB_CACHE_SIZE], FILE_CONTROL_BLOCK_SIZE);
+
+		FCB_Cache_Index[index % FCB_CACHE_SIZE] = index;
+		FCB_Cache_Dirty[index % FCB_CACHE_SIZE] = false;
+	}
+
+	/*ReadDisk((uint8_t*)buff, (uint64_t)Super.FCBOffset * Super.BlockSize + (uint64_t)index * FILE_CONTROL_BLOCK_SIZE, FILE_CONTROL_BLOCK_SIZE);
+	buff->ReadTime = time(NULL);*/
+
 	return;
 }
 static inline void StoreFCB(FCBIndex index, FileControlBlock* buff) {
 	assert(index != -1);
-	WriteDisk((uint8_t*)buff, (uint64_t)Super.FCBOffset * Super.BlockSize + (uint64_t)index * FILE_CONTROL_BLOCK_SIZE, FILE_CONTROL_BLOCK_SIZE);
+	if (FCB_Cache_Index[index % FCB_CACHE_SIZE] == index) {
+		memcpy(&FCB_Cache[index % FCB_CACHE_SIZE], buff, FILE_CONTROL_BLOCK_SIZE);
+		FCB_Cache_Dirty[index % FCB_CACHE_SIZE] = true;
+	}
+	else {
+		WriteDisk((uint8_t*)buff, (uint64_t)Super.FCBOffset * Super.BlockSize + (uint64_t)index * FILE_CONTROL_BLOCK_SIZE, FILE_CONTROL_BLOCK_SIZE);
+	}
 	return;
 }
+static inline void SaveFCBCache() {
+	for (size_t i = 0; i < FCB_CACHE_SIZE; i++)
+	{
+		if (FCB_Cache_Dirty[i] == true) {
+			WriteDisk((uint8_t*)&FCB_Cache[i], (uint64_t)Super.FCBOffset * Super.BlockSize + (uint64_t)FCB_Cache_Index[i] * FILE_CONTROL_BLOCK_SIZE, FILE_CONTROL_BLOCK_SIZE);
+		}
+	}
+	return;
+}
+
+
+
+static inline uint16_t& BlockSize(uint8_t* blockBuff) { return ((Block*)blockBuff)->Size; }
+static inline uint16_t& BlockFCS(uint8_t* blockBuff) { return ((Block*)blockBuff)->FCS; }
+
 static inline void LoadBlock(BlockIndex index, uint8_t* buff) {
 	assert(index != -1);
 	ReadDisk(buff, ((uint64_t)index + Super.DataOffset) * Super.BlockSize, Super.BlockSize);
@@ -286,6 +336,12 @@ void FormatDisk(uint32_t blocksize, uint32_t FCBBlockNum) {
 
 	WriteDisk(FCBBitMap->data, Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);    //写入FCB的bitmap
 	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte); //写入DataBlock的bitmap
+}
+
+void DismountDisk() {
+	SaveFCBCache();
+	DisMount();
+	return;
 }
 
 void PrintDiskInfo() {
@@ -780,3 +836,4 @@ bool ChangeAccessMode(FCBIndex file, uint8_t newMode)
 	StoreFCB(file, &fileFCB);
 	return true;
 }
+
