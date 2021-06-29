@@ -357,8 +357,8 @@ void cd(string path)
 
 // bin/xx 给出进入bin即可
 // result_cur 最终cd到的文件节点号
-// s2 cd 后面的路由串
-// inum_cur  当前文件的节点号
+// s2 cd 后面的路径串
+// inum_cur  当前文件夹的节点号
 int readby(string path)
 { //根据当前目录和第二个参数确定转过去的目录
     int result_cur = 0;
@@ -540,7 +540,7 @@ void vi() {
     int i, inum;
     int64_t res;
     string temps1, temps2; int temp_cur;
-    char temp[100 * BLKSIZE];
+    char temp[10 * BLKSIZE];
     uint8_t* buff;
     if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
         temps1 = s2.substr(0, s2.find_last_of('/') + 1);
@@ -693,9 +693,82 @@ void info()
     PrintDiskInfo();
 }
 
-//copy a-b 新建b文件并复制a文件内容，待修复
+//copy a->b 新建b文件并复制a文件内容，待修复
 void copy(string path) {
+    if (path.empty()) {
+        cout << "Please input copy path!" << endl;
+        return;
+    }
+    string path_ori, path_tar;
+    if (path.find("->") == -1) {
+        cout << "Please input correct path!" << endl;
+        return;
+    }
+    else {
+        path_ori = path.substr(0, path.find_first_of("->") + 1);
+        path_tar = path.substr(path.find_first_of("->") + 1);
+    }
+    int i, ori_temp_cur;
+    string temps1, temps2, copied_filename;
 
+    // 被copy文件操作
+    if (path_ori.find('/') != -1) {
+        temps1 = path_ori.substr(0, path_ori.find_last_of('/') + 1);
+        temps2 = path_ori.substr(path.find_last_of('/') + 1);
+        copied_filename = temps2;
+        ori_temp_cur = readby(temps1);
+        if (ori_temp_cur == -1) {
+            cout << "No such Directory" << endl;
+        }
+    }
+    else {
+        copied_filename = path;
+        ori_temp_cur = inum_cur;
+    }
+    FCBIndex copied_filename_cur = Find(ori_temp_cur, copied_filename);
+    FileControlBlock ori_fcb;
+    FileInfo(copied_filename_cur, &ori_fcb);  // 获取被copy文件的FCB信息
+    if (ori_fcb.Type == FileType::Directory) {
+        cout << "Can not Copy Directory" << endl;
+        return;
+    }
+
+
+    int i, tar_temp_cur;
+    string tar_temps1, tar_temps2, target_dir;
+    // copy到的目录
+    if (path_tar.back() != '/') {
+        path_tar += '/';
+        tar_temp_cur = readby(path_tar);  // 到指定目录下
+    }
+    if (tar_temp_cur == -1) {
+        cout << "No Such Directory!" << endl;
+        return;
+    }
+    // 判断目标文件夹下是否存在同名文件
+    int64_t write_res;
+    FCBIndex exit_file_cur = Find(tar_temp_cur, copied_filename);
+    if (exit_file_cur != -1) { // 存在同名文件
+        cout << "Already Exit the Same Name File!!" << endl;
+        copied_filename += '1';
+    }
+    FCBIndex create_file_index = CreateFile(copied_filename, tar_temp_cur);
+    // 读取被copy文件的内容
+    uint8_t* buff = (uint8_t*)malloc(ori_fcb.Size + 1);
+    int64_t res = ReadFile(copied_filename_cur, 0, ori_fcb.Size, buff);
+    if (res != -1) { // 被copy文件存在内容，写入新创建文件中
+        write_res = WriteFile(create_file_index, 0, ori_fcb.Size, (uint8_t*)(buff));
+    }
+    else { // 被copy文件内容为空，不需要写入
+        cout << "Original File is Empty!!" << endl;
+        write_res = 1;
+    }
+    if (write_res != -1) {
+        cout << "Copy Successfully!! " << endl;
+    }
+    else {
+        cout << "Copy Failed!! " << endl;
+    }
 
 }
 
