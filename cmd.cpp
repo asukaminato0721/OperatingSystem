@@ -657,7 +657,7 @@ void quit()
     scanf("%c", &choice);
     gets_s(temp);
     if ((choice == 'y') || (choice == 'Y')) {
-        DismountDisk();//将缓存中的内容写入磁盘
+        fs_Destruction();//将缓存中的内容写入磁盘
         exit(-1);
     }
 
@@ -861,9 +861,11 @@ void command(void)
 // 主函数
 int main(void)
 {
-    initDisk();//初始化文件指针等，使得所有操作能够写入磁盘
+    //initDisk();//初始化文件指针等，使得所有操作能够写入磁盘
     //format();
-    bool flag = LoadDisk();//挂载磁盘，将磁盘的超级块等控制信息放入内存，没有format()，必须要有这一步
+   
+    //bool flag = LoadDisk(); //挂载磁盘，将磁盘的超级块等控制信息放入内存，没有format()，必须要有这一步
+    bool flag =  fs_init(); //挂载磁盘，将磁盘的超级块等控制信息放入内存，没有format()，必须要有这一步
     if (flag == false)
     {
         printf("lodedisk file!\n");
@@ -872,6 +874,6 @@ int main(void)
     init();
     login();
     command();
-    DismountDisk();//将缓存中的内容写入磁盘
+    fs_Destruction();//将缓存中的内容写入磁盘
     return 0;
 }

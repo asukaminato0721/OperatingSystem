@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 
-
 #define FILE_CONTROL_BLOCK_SIZE 128u
 #define MAX_POINTER ((Super.BlockSize - sizeof(Block)) / sizeof(BlockIndex) + 10)
 #define MAX_BLOCK_SPACE (Super.BlockSize - sizeof(Block))
@@ -25,32 +24,28 @@ public:
 	static constexpr uint8_t All = 0xFF;
 };
 
-
 enum class FileType : uint8_t { File, Directory };
 //超级块（记录盘块信息）
 struct SuperBlock {
-	uint16_t   FCS = 0;               //循环校验码
-	char       Version[16];			  //文件系统版本号
-	uint32_t   DiskSize;			  //磁盘大小
-	uint32_t   BlockSize;             //块大小
-	uint32_t   BlockNum;              //块数量(=DISK_SIZE/块大小)
-	BlockIndex FCBBitmapOffset;       // FCB的位示图列表开始块号
-	BlockIndex DataBitmapOffset;      // Data的位示图数据块开始块号
-	BlockIndex FCBOffset;             // FCB列表开始块号
-	BlockIndex DataOffset;            // Data数据块开始块号
-	uint32_t   FCBNum, DataBlockNum;  // FCB数量和DataBlock数量
+	uint16_t FCS = 0;              //循环校验码
+	char Version[16];              //文件系统版本号
+	uint32_t DiskSize;             //磁盘大小
+	uint32_t BlockSize;            //块大小
+	uint32_t BlockNum;             //块数量(=DISK_SIZE/块大小)
+	BlockIndex FCBBitmapOffset;    // FCB的位示图列表开始块号
+	BlockIndex DataBitmapOffset;   // Data的位示图数据块开始块号
+	BlockIndex FCBOffset;          // FCB列表开始块号
+	BlockIndex DataOffset;         // Data数据块开始块号
+	uint32_t FCBNum, DataBlockNum; // FCB数量和DataBlock数量
 };
-
-
 
 struct Block {
 	uint16_t FCS = 0;  //循环校验码
 	uint16_t Size = 0; //块内有效数据的长度
-	// PointerBlock    : BlockIndex[]
-	// Data		       : uint8_t[]
-	// Dir		       : FCBIndex[]
+					   // PointerBlock    : BlockIndex[]
+					   // Data		       : uint8_t[]
+					   // Dir		       : FCBIndex[]
 };
-
 
 //文件控制段（一个Block里可以存放多个FCB）
 struct FileControlBlock {
@@ -69,25 +64,20 @@ struct FileControlBlock {
 	uint8_t __padding[6];
 };
 
-//超级块信息
-//extern SuperBlock Super;
-
-
-bool LoadDisk();
+//bool LoadDisk();
 void FormatDisk(uint32_t blocksize = 1 << 10, uint32_t FCBBlockNum = 0);
-void DismountDisk();
+//void DismountDisk();
 
+bool fs_init();
+bool fs_Destruction();
 
 void PrintDiskInfo();
-
 
 FCBIndex CreateDirectory(const string& name, FCBIndex parent);
 FCBIndex CreateFile(const string& name, FCBIndex dir);
 
-
 void PrintDir(FCBIndex dir);
 void PrintInfo(FCBIndex file);
-
 
 FCBIndex Create(const string& name, FCBIndex dir, enum FileType t);
 int64_t ReadFile(FCBIndex file, int64_t pos, int64_t len, uint8_t* buff);

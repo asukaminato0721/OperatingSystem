@@ -12,19 +12,18 @@ uint8_t buff[TestSize];
 char input[1 << 20];
 FCBIndex workDir = 0;
 
-
-int _main() {
+int main() {
 	initDisk();
 	if (LoadDisk() == false) {
+		cout << "Format Disk\n";
 		FormatDisk(4 * 1 << 10);
 	}
 	PrintDiskInfo();
 
-	while (true)
-	{
+	while (true) {
 		cout << "Input : ";
 		cin.getline(input, 1024);
-		//cout << "in = " << input;
+		// cout << "in = " << input;
 		if (memcmp(input, "exit", 4) == 0) {
 			DismountDisk();
 			return 0;
@@ -38,7 +37,7 @@ int _main() {
 		else if (memcmp(input, "cd", 2) == 0) {
 			char newdir[128];
 			strcpy(newdir, input + 3);
-			auto  newWD = Find(workDir, newdir);
+			auto newWD = Find(workDir, newdir);
 			FileControlBlock fcb;
 
 			if (newWD == -1) {
@@ -76,8 +75,7 @@ int _main() {
 			}
 			inFileBuff[fcb.Size] = 0;
 			bool isPrintable = true;
-			for (size_t i = 0; i < fcb.Size; i++)
-			{
+			for (size_t i = 0; i < fcb.Size; i++) {
 				if ((inFileBuff[i] > 0x1f && inFileBuff[i] != 0x7f) == false && inFileBuff[i] != '\n' && inFileBuff[i] != '\r' && inFileBuff[i] != '\t' && inFileBuff[i] != '\v') {
 					isPrintable = false;
 					break;
@@ -87,8 +85,7 @@ int _main() {
 				cout << inFileBuff << endl;
 			}
 			else {
-				for (size_t i = 0; i < fcb.Size; i++)
-				{
+				for (size_t i = 0; i < fcb.Size; i++) {
 					printf("%02X ", inFileBuff[i]);
 					if ((i - 1) % 64 == 0) {
 						cout << endl;
@@ -128,6 +125,12 @@ int _main() {
 
 			cout << endl;
 		}
+		else if (memcmp(input, "infoid", 6) == 0) {
+			FCBIndex file = atoi(input + 7);
+
+			PrintInfo(file);
+			cout << endl;
+		}
 		else if (memcmp(input, "info", 4) == 0) {
 			char fileName[128];
 			strcpy(fileName, input + 5);
@@ -139,6 +142,7 @@ int _main() {
 			PrintInfo(fcbID);
 			cout << endl;
 		}
+
 		else if (memcmp(input, "in", 2) == 0) {
 			char fileName[128];
 			strcpy(fileName, input + 3);
@@ -192,6 +196,5 @@ int _main() {
 			ChangeAccessMode(Find(workDir, fileName), acc);
 			cout << endl;
 		}
-
 	}
 }

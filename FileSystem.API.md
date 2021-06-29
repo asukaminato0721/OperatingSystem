@@ -48,6 +48,22 @@
 - `FCBIndex file` 待查找的文件 FCB 号
 - `FileControlBlock *fcb` 接收缓冲区。该文件的 FCB 结构体会被读取到`fcb`中，供后续使用
 
+### bool ChangeAccessMode(FCBIndex file, uint8_t newMode)
+
+    修改文件的权限信息
+
+- `FCBIndex file` 待修改文件的 FCB 号
+- `uint8_t newMode` 文件的新访问权限，由 Access 枚举类中的值使用或操作得到
+- `bool 返回值` 如果成功则返回 true，否则返回 false
+
+### bool DeleteFile(FCBIndex file)
+
+    删除文件
+    如果该函数用于目录，则会导致目录内所有文件均被迭代删除
+
+- `FCBIndex file` 被删除文件的 FCB 号
+- `bool 返回值` 如果成功则返回 true，否则返回 false
+
 ### vector\<FCBIndex\> GetChildren(FCBIndex dir)
 
     搜索某目录下所有文件的FCB号
