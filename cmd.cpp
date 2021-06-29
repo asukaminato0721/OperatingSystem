@@ -1,5 +1,5 @@
 #include "FileSystem.h"
-//#include "Driver.h"
+#include "Driver.h"
 #include <bits/stdc++.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -334,7 +334,7 @@ int analyse()
 void cd(string path)
 {
     int temp_cur;
-    if (path.empty())
+    if (path.empty())//path为空返回1
     {
         printf("command error!\n");
         return;
@@ -509,6 +509,10 @@ void touch()
 void cat() {
     int i, inum;
     string temps1, temps2; int temp_cur;
+    if (s2.empty()) {
+        cout << "The file name is empty!!" << endl;
+        return;
+    }
     if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
         temps1 = s2.substr(0, s2.find_last_of('/') + 1);
         temps2 = s2.substr(s2.find_last_of('/') + 1);
@@ -522,9 +526,13 @@ void cat() {
         temp_cur = inum_cur;
     }
     FCBIndex file_cur = Find(temp_cur, s2);
+    if (file_cur == -1) {//如果未找到该文件，则返回
+        cout << "This file isn't exist!!" << endl;
+        return;
+    }
     FileControlBlock fcb;
     FileInfo(file_cur, &fcb);
-    uint8_t* buff = (uint8_t*)malloc(fcb.Size+1);//多加一个字节，增加‘\0’
+    uint8_t* buff = (uint8_t*)malloc(fcb.Size + 1);//多加一个字节，增加‘\0’
     int64_t res = ReadFile(file_cur, 0, fcb.Size, buff);//指针类型传指针类型参数不用加&
     buff[fcb.Size] = '\0';//
     if (res != -1) {
@@ -557,6 +565,10 @@ void vi() {
         temp_cur = inum_cur;
     }
     FCBIndex file_cur = Find(temp_cur, s2);//根据当前文件夹号，和文件名查找文件FCB号
+    if (file_cur == -1) {//如果未找到该文件，则返回
+        cout << "This file isn't exist!!" << endl;
+        return;
+    }
     FileControlBlock fcb;
     FileInfo(file_cur, &fcb);//根据查找到的FCB号获得文件FCB
     if (fcb.Size == 0) {
@@ -578,18 +590,29 @@ void vi() {
         else if (choice == 'a') {
             printf("Please input: ");//这里不要加换行符
             gets_s(temp);
-            res = WriteFile(file_cur, fcb.Size , strlen((char*)(temp)), (uint8_t*)(temp));//fcb.Size不需要+1，从0开始
+            res = WriteFile(file_cur, fcb.Size - 2, strlen((char*)(temp)), (uint8_t*)(temp));//fcb.Size不需要+1，从0开始
+
+            //测试
+            FileInfo(file_cur, &fcb);//根据查找到的FCB号获得文件FCB
+            uint8_t* buff = (uint8_t*)malloc(fcb.Size + 1);//多加一个字节，增加‘\0’
+            ReadFile(file_cur, 0, fcb.Size, buff);//指针类型传指针类型参数不用加&
+            buff[fcb.Size] = '\0';//
+            if (res != -1) {
+                printf("%s\n", buff);
+            }
+
         }
         else {
             printf("Exit write!\n");
         }
-        if (res != -1) {
-            printf("Write file successfully!\n");
-        }
-        else {
-            printf("Failed to write!\n");
-        }
     }
+    if (res != -1) {
+        printf("Write file successfully!\n");
+    }
+    else {
+        printf("Failed to write!\n");
+    }
+
 }
 
 // 功能: 删除文件
@@ -863,9 +886,9 @@ int main(void)
 {
     //initDisk();//初始化文件指针等，使得所有操作能够写入磁盘
     //format();
-   
+
     //bool flag = LoadDisk(); //挂载磁盘，将磁盘的超级块等控制信息放入内存，没有format()，必须要有这一步
-    bool flag =  fs_init(); //挂载磁盘，将磁盘的超级块等控制信息放入内存，没有format()，必须要有这一步
+    bool flag = fs_init(); //挂载磁盘，将磁盘的超级块等控制信息放入内存，没有format()，必须要有这一步
     if (flag == false)
     {
         printf("lodedisk file!\n");
