@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "FileSystem.h"
 #include "Driver.h"
 #include <bits/stdc++.h>
