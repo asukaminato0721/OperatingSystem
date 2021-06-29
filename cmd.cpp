@@ -103,7 +103,7 @@ void login()
                 fclose(fp);
                 printf("\n");
                 //CreateDirectory(user.user_name, 0);//在根目录下创建用户文件夹，仅供该用户使用，文件系统更改为存入硬盘，登录时无需重新创建
-                cd(user.user_name);//进入用户文件夹
+                cd(user_name);//进入用户文件夹
                 return; //登陆成功，直接跳出登陆函数
             }
             // 已经存在的用户, 但密码错误
@@ -171,6 +171,7 @@ void su(string user_name) {
                 !strcmp(user.password, password)) {
                 fclose(fp);
                 printf("\n");
+                init();//将inum_cur初始化为0，回到根目录
                 cd(user_name);//进入用户文件夹
                 return;     //登陆成功，直接跳出登陆函数
             }
@@ -291,7 +292,7 @@ int analyse()
         }
         else if (ch == 13)
         { //回车
-            for (res = 0; res < 17; res++)
+            for (res = 0; res < 17; res++)//若未匹配成功，则res为17，此时将判断命令错误
             {
                 if (s1 == Commands[res])
                     break; //匹配命令
@@ -350,7 +351,7 @@ void cd(string path)
     }
     else
     {
-        cout << "No Such Directory" << endl;
+        cout << "No Such Directory\n" << endl;
     }
 }
 
@@ -394,7 +395,7 @@ int readby(string path)
         */
         temp_cur = Find(inum_cur, v[0]); // 返回上一级目录的目录号
         if (temp_cur == 0) {
-            printf("cd failed!");
+            printf("cd failed!\n");
             temp_cur = inum_cur;
         }
     }
@@ -425,18 +426,19 @@ void ls(string path)   // path为空则列出当前文件夹下的全部子文件，不为空则列出pa
         temp_cur = readby(path);
         if (temp_cur == -1)
         {
-            cout << "No Such Directory" << endl;
+            cout << "No Such Directory\n" << endl;
             return;
         }
     }
     if (temp_cur != -1)
     {
-        vector<FCBIndex> v = GetChildren(temp_cur);
         printf("%12s | %12s | %6s | % 10s\n", "Name", "Size", "FCB", "Physical Address");
+        /*vector<FCBIndex> v = GetChildren(temp_cur);
         for (unsigned int count = 0; count < v.size(); count++)
         {
             PrintDir(v[count]);
-        }
+        }*/
+        PrintDir(temp_cur);
     }
 }
 
@@ -445,7 +447,7 @@ void mkdir()
 {
     if (s2.empty())
     {
-        cout << "Please input directery name" << endl;
+        cout << "Please input directery name\n" << endl;
         return;
     }
     int i, temp_cur;
@@ -644,7 +646,7 @@ void rmdir(void)
     }
 }
 
-// 功能: 退出文件系统(quit)
+// 功能: exit退出文件系统(quit)
 void quit()
 {
     char choice;
@@ -652,6 +654,7 @@ void quit()
     scanf("%c", &choice);
     gets_s(temp);
     if ((choice == 'y') || (choice == 'Y'))
+        DismountDisk();//将缓存中的内容写入磁盘
         exit(-1);
 }
 
@@ -660,7 +663,7 @@ void format() {
     printf("Are you sure format the fileSystem?(Y/N)?");
     scanf("%c", &choice);
     if ((choice == 'y') || (choice == 'Y')) {
-        //调用底层函数，格式化磁盘
+        //调用底层函数，格式化磁盘，默认将磁盘超级块等信息存入内存
         FormatDisk();
         //清除用户信息
         fp = fopen("user.txt", "w+");//以w+方式，若存在则清空用户信息文件
@@ -779,10 +782,12 @@ void command(void)
 // 主函数
 int main(void)
 {
+    initDisk();//初始化文件指针等，使得所有操作能够写入磁盘
     //format();
-    initDisk();
-    login();
+    LoadDisk();//挂载磁盘，将磁盘的超级块等控制信息放入内存，没有format()，必须要有这一步
     init();
+    login();
     command();
+    DismountDisk();//将缓存中的内容写入磁盘
     return 0;
 }

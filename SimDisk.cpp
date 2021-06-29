@@ -13,7 +13,7 @@ char input[1 << 20];
 FCBIndex workDir = 0;
 
 
-int main() {
+int _main() {
 	initDisk();
 	if (LoadDisk() == false) {
 		FormatDisk(4 * 1 << 10);
