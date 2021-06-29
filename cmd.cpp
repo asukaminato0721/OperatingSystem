@@ -49,7 +49,7 @@ typedef struct
 
 
 char choice;
-vector<string> vc_of_str;
+//vector<string> vc_of_str;
 string s1, s2;
 FCBIndex inum_cur;   //当前文件夹FCB号                                                                                                                                                   // 当前目录
 char temp[10 * BLKSIZE];  //写入缓冲区                                                                                                                                       // 缓冲区
@@ -127,6 +127,7 @@ void login()
     {
         printf("\nDo you want to creat a new user?(y/n):");
         scanf("%c", &choice);
+        getchar();//scanf后，这里需要吸收一个回车
         // gets_s(temp);
         if ((choice == 'y') || (choice == 'Y'))
         {
@@ -247,7 +248,7 @@ int analyse()
     string s = "";
     s1 = "";
     s2 = "";          // s存全部输入；s1用于存命令；s2用于存参数
-    int tabcount = 0; //用于记录tab键输入个数
+    //int tabcount = 0; //用于记录tab键输入个数
     int res = 0;      //命令编号
     while (1)
     {
@@ -313,14 +314,14 @@ int analyse()
             s.push_back(ch);
         }
         //用于处理按两次tab
-        if (ch == 9)
+        /*if (ch == 9)
         {
             tabcount++;
         }
         else
         {
             tabcount = 0;
-        }
+        }*/
     }
     if (s1 == "")
     {
@@ -455,7 +456,7 @@ void mkdir()
     if (s2.find('/') != -1) {  // 要创建的文件夹不在当前目录下，而是在路径中的指定文件下
         temps1 = s2.substr(0, s2.find_last_of('/') + 1);
         temps2 = s2.substr(s2.find_last_of('/') + 1);
-        s2 = temps1;
+        //s2 = temps2;
         temp_cur = readby(temps1);
         if (temp_cur == -1) {
             printf("No Such Directory\n");
@@ -485,8 +486,8 @@ void touch()
     string temps1, temps2;
     if (s2.find('/') != -1) {  // 要创建的file不在当前目录下，而是在路径中的指定文件下
         temps1 = s2.substr(0, s2.find_last_of('/') + 1);
-        temps2 = s2.substr(s2.find_last_of('/') + 1);
-        s2 = temps1;
+        temps2 = s2.substr(s2.find_last_of('/') + 1);//temps2是文件名；+1吧'/'去掉
+        //s2 = temps2;
         temp_cur = readby(temps1);
         if (temp_cur == -1) {
             printf("No Such Directory\n");
@@ -496,7 +497,7 @@ void touch()
         temps2 = s2;
         temp_cur = inum_cur;
     }
-    FCBIndex index = CreateFile(s2, temp_cur);
+    FCBIndex index = CreateFile(temps2, temp_cur);
     if (index != -1) {
         printf("Create File Successfully!\n");
     }
@@ -516,16 +517,16 @@ void cat() {
     if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
         temps1 = s2.substr(0, s2.find_last_of('/') + 1);
         temps2 = s2.substr(s2.find_last_of('/') + 1);
-        string temps = s2;
-        s2 = temps1;
+        //string temps = s2;
+        //s2 = temps1;
         temp_cur = readby(temps1);
-        s2 = temps;
+        //s2 = temps;
     }
     else {
         temps2 = s2;//将文件名缓存到temps2中
         temp_cur = inum_cur;
     }
-    FCBIndex file_cur = Find(temp_cur, s2);
+    FCBIndex file_cur = Find(temp_cur, temps2);
     if (file_cur == -1) {//如果未找到该文件，则返回
         cout << "This file isn't exist!!" << endl;
         return;
@@ -555,16 +556,16 @@ void vi() {
     if (s2.find('/') != -1) {  // 传入的不是文件名而是路径
         temps1 = s2.substr(0, s2.find_last_of('/') + 1);
         temps2 = s2.substr(s2.find_last_of('/') + 1);
-        string temps = s2;
-        s2 = temps1;
+        //string temps = s2;
+        //s2 = temps2;
         temp_cur = readby(temps1);
-        s2 = temps;
+        //s2 = temps;
     }
     else {
         temps2 = s2;
         temp_cur = inum_cur;
     }
-    FCBIndex file_cur = Find(temp_cur, s2);//根据当前文件夹号，和文件名查找文件FCB号
+    FCBIndex file_cur = Find(temp_cur, temps2);//根据当前文件夹号，和文件名查找文件FCB号
     if (file_cur == -1) {//如果未找到该文件，则返回
         cout << "This file isn't exist!!" << endl;
         return;
@@ -581,25 +582,17 @@ void vi() {
         printf("This file already exist data! \n");
         printf("Overwrite or append? input o/a:");
         scanf("%c", &choice);
-        getchar();//scanf后需要加这句，吸收回车键，否则会将回车直接存到后面的temp缓存中
+        getchar();//scanf后需要加这句，吸收回车键，否则gets_s会将回车直接存到后面的temp缓存中
         if (choice == 'o') {
             printf("Please input: ");//这里不要加换行符
             gets_s(temp);
-            res = WriteFile(file_cur, 0, strlen((char*)(temp)), (uint8_t*)(temp));
+            res = WriteFile(file_cur, 0, strlen((char*)(temp)) + 1, (uint8_t*)(temp));//将temp最后的'\0'存入完成覆盖
         }
         else if (choice == 'a') {
             printf("Please input: ");//这里不要加换行符
             gets_s(temp);
             res = WriteFile(file_cur, fcb.Size, strlen((char*)(temp)), (uint8_t*)(temp));//fcb.Size不需要+1，从0开始
 
-            ////测试
-            //FileInfo(file_cur, &fcb);//根据查找到的FCB号获得文件FCB
-            //uint8_t* buff = (uint8_t*)malloc(fcb.Size + 1);//多加一个字节，增加‘\0’
-            //ReadFile(file_cur, 0, fcb.Size, buff);//指针类型传指针类型参数不用加&
-            //buff[fcb.Size] = '\0';//
-            //if (res != -1) {
-            //    printf("%s\n", buff);
-            //}
 
         }
         else {
@@ -690,6 +683,7 @@ void quit()
 void format() {
     printf("Are you sure format the fileSystem?(Y/N)?");
     scanf("%c", &choice);
+    getchar();//scanf后，这里需要吸收一个回车
     if ((choice == 'y') || (choice == 'Y')) {
         //调用底层函数，格式化磁盘，默认将磁盘超级块等信息存入内存
         FormatDisk();
@@ -706,12 +700,14 @@ void format() {
 
 }
 
-//清空内存中存在的用户名
+//清空内存中存在的用户名和密码
 void free_user()
 {
     int i;
-    for (i = 0; i < USERLEN; i++)//循环
+    for (i = 0; i < USERLEN; i++) {
         user.user_name[i] = '\0';
+        user.password[i] = '\0';
+    }
 }
 
 void info()
@@ -731,13 +727,13 @@ void copy(string path) {
         return;
     }
     else {
-        path_ori = path.substr(0, path.find_first_of("->") + 1);
-        path_tar = path.substr(path.find_first_of("->") + 1);
+        path_ori = path.substr(0, path.find_first_of("->"));
+        path_tar = path.substr(path.find_first_of("->") + 2);//+2跳"->"两个字符获得正确的文件夹
     }
     int i, ori_temp_cur;
     string temps1, temps2, copied_filename;
 
-    // 被copy文件操作
+    // 被copy文件操作,
     if (path_ori.find('/') != -1) {
         temps1 = path_ori.substr(0, path_ori.find_last_of('/') + 1);
         temps2 = path_ori.substr(path.find_last_of('/') + 1);
@@ -747,11 +743,15 @@ void copy(string path) {
             cout << "No such Directory" << endl;
         }
     }
-    else {
-        copied_filename = path;
+    else {//->前面只传文件名
+        copied_filename = path_ori;
         ori_temp_cur = inum_cur;
     }
     FCBIndex copied_filename_cur = Find(ori_temp_cur, copied_filename);
+    if (copied_filename_cur == -1) {
+        cout << copied_filename << " file doesn't exist!!" << endl;
+        return;
+    }
     FileControlBlock ori_fcb;
     FileInfo(copied_filename_cur, &ori_fcb);  // 获取被copy文件的FCB信息
     if (ori_fcb.Type == FileType::Directory) {
@@ -759,8 +759,6 @@ void copy(string path) {
         return;
     }
 
-
-    //int i, tar_temp_cur;
     int tar_temp_cur;
     string tar_temps1, tar_temps2, target_dir;
     // copy到的目录
@@ -783,6 +781,7 @@ void copy(string path) {
     // 读取被copy文件的内容
     uint8_t* buff = (uint8_t*)malloc(ori_fcb.Size + 1);
     int64_t res = ReadFile(copied_filename_cur, 0, ori_fcb.Size, buff);
+    buff[ori_fcb.Size] = '\0';
     if (res != -1) { // 被copy文件存在内容，写入新创建文件中
         write_res = WriteFile(create_file_index, 0, ori_fcb.Size, (uint8_t*)(buff));
     }
@@ -894,8 +893,8 @@ int main(void)
         printf("lodedisk file!\n");
         return 0;
     }
-    init();
-    login();
+    init();//设置inum_cur=0
+    login();//登录
     command();
     fs_Destruction();//将缓存中的内容写入磁盘
     return 0;
