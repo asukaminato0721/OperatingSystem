@@ -13,7 +13,7 @@
     constructor(name: string, type: Type, content?: string) {
       this.name = name;
       this.type = type;
-      this.content = content;
+      this.content = content ?? "";
       this.children = {};
     }
   }
@@ -141,11 +141,24 @@
       "cat",
       (args: string[]) => {
         let arg = args[0];
+        let 临门一脚: {
+          [key: string]: Node;
+        };
+        let 要显示的文件名: string;
+        if (!arg.includes("/")) {
+          临门一脚 = 目前位置().children;
+          要显示的文件名 = arg;
+        } else {
+          const 路径 = arg.split("/");
+          临门一脚 = last(走向路径(目前位置(), 路径.slice(0, -1))).children;
+          console.log(JSON.stringify(临门一脚));
+          要显示的文件名 = last(路径);
+        }
         if (
-          目前位置().children.hasOwnProperty(arg) &&
-          目前位置().children[arg].type === Type.File
+          临门一脚.hasOwnProperty(要显示的文件名) &&
+          临门一脚[要显示的文件名].type === Type.File
         ) {
-          return 目前位置().children[arg].content;
+          return 临门一脚[要显示的文件名].content;
         } else {
           return `cat: ${arg}: 没有那个文件`;
         }

@@ -13,7 +13,7 @@ cd 目录
 cd 任意个点
 cd folder1/folder2/folder3/../folder4/..
 mkdir folder1 folder2 ...
-cat file
+cat folder1/folder2/../file
 echo content > file
 echo content >> file
 touch file1 file2 ...
@@ -23,3 +23,7 @@ clear
 exit
 tree
 ```
+
+## 目前待改进的
+
+改成根据 path 找 id,目前只做了 path 匹配

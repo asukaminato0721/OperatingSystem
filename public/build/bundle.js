@@ -402,7 +402,7 @@ var app = (function () {
     	return child_ctx;
     }
 
-    // (308:0) {#each 显示的指令历史 as 指令}
+    // (320:0) {#each 显示的指令历史 as 指令}
     function create_each_block(ctx) {
     	let t0;
     	let div0;
@@ -426,9 +426,9 @@ var app = (function () {
     			t3 = text(t3_value);
     			t4 = space();
     			div2 = element("div");
-    			add_location(div0, file, 309, 2, 8458);
-    			add_location(div1, file, 312, 2, 8518);
-    			add_location(div2, file, 313, 2, 8541);
+    			add_location(div0, file, 321, 2, 8885);
+    			add_location(div1, file, 324, 2, 8945);
+    			add_location(div2, file, 325, 2, 8968);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, t0, anchor);
@@ -459,7 +459,7 @@ var app = (function () {
     		block,
     		id: create_each_block.name,
     		type: "each",
-    		source: "(308:0) {#each 显示的指令历史 as 指令}",
+    		source: "(320:0) {#each 显示的指令历史 as 指令}",
     		ctx
     	});
 
@@ -506,18 +506,18 @@ var app = (function () {
     			t4 = space();
     			attr_dev(a, "target", "_blank");
     			attr_dev(a, "href", "https://github.com/wuyudi/OperatingSystem/tree/online-demo#%E4%B8%80%E4%B8%AA-shell-%E7%9A%84%E5%9C%A8%E7%BA%BF%E6%A8%A1%E6%8B%9F%E5%99%A8");
-    			add_location(a, file, 296, 0, 8063);
+    			add_location(a, file, 308, 0, 8490);
     			set_style(textarea, "font-family", "Consolas");
     			set_style(textarea, "height", "10rem");
     			set_style(textarea, "width", "80rem");
     			set_style(textarea, "border-color", "transparent");
     			textarea.value = /*logo*/ ctx[3];
-    			add_location(textarea, file, 302, 2, 8251);
-    			add_location(div0, file, 301, 0, 8243);
+    			add_location(textarea, file, 314, 2, 8678);
+    			add_location(div0, file, 313, 0, 8670);
     			set_style(input, "width", "100%");
-    			add_location(input, file, 318, 2, 8592);
+    			add_location(input, file, 330, 2, 9019);
     			html_tag = new HtmlTag(null);
-    			add_location(div1, file, 317, 0, 8584);
+    			add_location(div1, file, 329, 0, 9011);
     		},
     		l: function claim(nodes) {
     			throw new Error_1("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -626,7 +626,7 @@ var app = (function () {
     		constructor(name, type, content) {
     			this.name = name;
     			this.type = type;
-    			this.content = content;
+    			this.content = content !== null && content !== void 0 ? content : "";
     			this.children = {};
     		}
     	}
@@ -763,9 +763,21 @@ var app = (function () {
     				"cat",
     				args => {
     					let arg = args[0];
+    					let 临门一脚;
+    					let 要显示的文件名;
 
-    					if (目前位置().children.hasOwnProperty(arg) && 目前位置().children[arg].type === Type.File) {
-    						return 目前位置().children[arg].content;
+    					if (!arg.includes("/")) {
+    						临门一脚 = 目前位置().children;
+    						要显示的文件名 = arg;
+    					} else {
+    						const 路径 = arg.split("/");
+    						临门一脚 = last(走向路径(目前位置(), 路径.slice(0, -1))).children;
+    						console.log(JSON.stringify(临门一脚));
+    						要显示的文件名 = last(路径);
+    					}
+
+    					if (临门一脚.hasOwnProperty(要显示的文件名) && 临门一脚[要显示的文件名].type === Type.File) {
+    						return 临门一脚[要显示的文件名].content;
     					} else {
     						return `cat: ${arg}: 没有那个文件`;
     					}
