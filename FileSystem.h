@@ -64,12 +64,12 @@ struct FileControlBlock {
 	uint8_t __padding[6];
 };
 
-//bool LoadDisk();
 void FormatDisk(uint32_t blocksize = 1 << 10, uint32_t FCBBlockNum = 0);
-//void DismountDisk();
 
 bool fs_init();
 bool fs_Destruction();
+
+bool CheckDisk();
 
 void PrintDiskInfo();
 

@@ -280,31 +280,12 @@ bool fs_init() {
 bool fs_Destruction() {
 	SaveFCBCache();
 	DisMountDisk();
-	return;
+	return true;
 }
 
 
 
 // Functions
-bool LoadDisk() {
-	ReadDisk((uint8_t*)&Super, 0, sizeof(Super));
-	if (strcmp(Super.Version, VERSION_STRING) == 0) {
-		FCBBitMap = new BiSet(Super.FCBNum);        //初始化FCB的bitmap
-		DataBitMap = new BiSet(Super.DataBlockNum); //初始化Data的bitmap
-		ReadDisk(FCBBitMap->data, (uint64_t)Super.FCBBitmapOffset * Super.BlockSize, FCBBitMap->SizeOfByte);
-		ReadDisk(DataBitMap->data, (uint64_t)Super.DataBitmapOffset * Super.BlockSize, DataBitMap->SizeOfByte);
-		return true;
-	}
-	else {
-		printf("Error:Disk Read Failed! Format the disk first\n");
-		return false;
-	}
-}
-void DismountDisk() {
-	fs_Destruction();
-}
-
-
 
 void FormatDisk(uint32_t blocksize, uint32_t FCBBlockNum) {
 	auto size = getDiskSize();
@@ -354,6 +335,35 @@ void FormatDisk(uint32_t blocksize, uint32_t FCBBlockNum) {
 	WriteDisk(DataBitMap->data, Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte); //写入DataBlock的bitmap
 }
 
+bool CheckDisk() {
+	printf("Checking disk...\n");
+	//check fcb
+	map<FCBIndex, set<FCBIndex>> fileTree_FCB, fileTree_Dir;
+	for (size_t i = 0; i < FCBBitMap->SizeOfByte; ++i) {
+		if (FCBBitMap->data[i] != 0) {
+			for (int j = 0; j < 8; ++j) {
+				if (FCBBitMap->get(i * 8 + j) == 1 && i * 8 + j < FCBBitMap->SizeOfBool) {
+					FileControlBlock fcb;
+					LoadFCB(i * 8 + j, &fcb);
+					fileTree_FCB[fcb.Parent].insert(i * 8 + j);
+				}
+			}
+		}
+	}
+	vector<FCBIndex> queue = { 0 };
+	while (queue.size() != 0)
+	{
+		FCBIndex f = queue.back();
+		queue.pop_back();
+		auto&& ls = GetChildren(f);
+		if (ls.size() > 0) {
+			queue.insert(queue.end(), ls.begin(), ls.end());
+			fileTree_Dir[f] = set<FCBIndex>(ls.begin(), ls.end());
+		}
+
+	}
+	return true;
+}
 
 void PrintDiskInfo() {
 	printf("Disk:\n");
@@ -505,10 +515,14 @@ FCBIndex Find(FCBIndex dir, const string& filename) {
 
 vector<FCBIndex> GetChildren(FCBIndex dir) {
 	vector<FCBIndex> ret;
-	uint8_t* blockBuff = (uint8_t*)malloc(Super.BlockSize);
-	BlockIndex block = 0;
 	FileControlBlock DirFCB, childs;
 	LoadFCB(dir, &DirFCB);
+	if (DirFCB.Type == FileType::File) {
+		return ret;
+	}
+	uint8_t* blockBuff = (uint8_t*)malloc(Super.BlockSize);
+	BlockIndex block = 0;
+
 	for (size_t i = 0; i < 10 && DirFCB.DirectBlock[i] != -1; i++) {
 		LoadBlock(DirFCB.DirectBlock[i], blockBuff);
 		for (FCBIndex* iter = (FCBIndex*)(blockBuff + sizeof(Block)); iter < (FCBIndex*)(blockBuff + Super.BlockSize); iter++) {
@@ -689,13 +703,13 @@ int64_t WriteFile(FCBIndex file, int64_t pos, int64_t len, const uint8_t* buff) 
 		}
 		else if (inBlockPos < MAX_BLOCK_SPACE) {     //写入起点是当前块
 			if (inBlockPos + len <= MAX_BLOCK_SPACE) { //在空隙中存下
-				memcpy(blockBuff + inBlockPos, buff, len);
+				memcpy(blockBuff + sizeof(Block) + inBlockPos, buff, len);
 				BlockSize(blockBuff) = MAX(BlockSize(blockBuff), inBlockPos + len);
 				StoreBlock(block, blockBuff);
 				goto WriteFile_end;
 			}
 			else { //存不下->填满空隙
-				memcpy(blockBuff + inBlockPos, buff, MAX_BLOCK_SPACE - inBlockPos);
+				memcpy(blockBuff + sizeof(Block) + inBlockPos, buff, MAX_BLOCK_SPACE - inBlockPos);
 				BlockSize(blockBuff) = MAX_BLOCK_SPACE;
 				StoreBlock(block, blockBuff);
 				StartPos += MAX_BLOCK_SPACE - inBlockPos; //写了MAX_BLOCK_SPACE - inBlockPos个字节
@@ -786,9 +800,9 @@ bool DeleteFile(FCBIndex file) {
 	LoadFCB(parentIndex, &parentFCB);
 	for (size_t i = 0; i < 10 && parentFCB.DirectBlock[i] != -1; i++) {
 		LoadBlock(parentFCB.DirectBlock[i], blockBuff);
-		for (uint64_t pos = sizeof(Block); pos < Super.BlockSize; pos += sizeof(FCBIndex)) {
-			if (*(FCBIndex*)(blockBuff + pos) == file) {
-				*(FCBIndex*)(blockBuff + pos) = -1;
+		for (FCBIndex* iter = (FCBIndex*)(blockBuff + sizeof(Block)); iter < (FCBIndex*)(blockBuff + Super.BlockSize); iter++) {
+			if (*iter == file) {
+				*iter = -1;
 				StoreBlock(parentFCB.DirectBlock[i], blockBuff);
 				// TEST ： 如果该目录块为空，则删除此目录块
 				for (uint64_t pos2 = sizeof(Block); pos2 < Super.BlockSize; pos2 += sizeof(FCBIndex)) {
@@ -804,6 +818,7 @@ bool DeleteFile(FCBIndex file) {
 					parentFCB.DirectBlock[j - 1] = parentFCB.DirectBlock[j];
 				}
 				parentFCB.DirectBlock[9] = -1;
+				StoreFCB(parentIndex, &parentFCB);
 				goto DeleteFile_end;
 			}
 		}
