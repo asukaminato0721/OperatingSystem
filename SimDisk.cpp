@@ -12,36 +12,23 @@ uint8_t buff[TestSize];
 char input[1 << 20];
 FCBIndex workDir = 0;
 
-#define NEG(x) (-x)
-int _main() {
+int main() {
+
 	if (fs_init() == false) {
 		cout << "Format Disk\n";
 		FormatDisk(4 * 1 << 10);
 	}
 	PrintDiskInfo();
-	CheckDisk();
+	//CheckDisk();
 
-	char str[] = "hello world";
-	uint8_t buff[1024] = { 0 };
-	WriteFile(5, 0, strlen(str), (uint8_t*)str);
-	ReadFile(5, 0, strlen(str), buff);
-	cout << buff << endl;
-	//hehello world
-	WriteFile(5, 2, strlen(str), (uint8_t*)str);
-	FileControlBlock fcb;
-	FileInfo(5, &fcb);
-	ReadFile(5, 0, fcb.Size, buff);
-
-	cout << buff << endl;
-
-
-
-	return 0;
-
-
-
-
-
+	//time_t start, end;
+	//start = clock();
+	//for (size_t i = 0; i < 3000; i++)
+	//{
+	//	Create("File_" + to_string(i), 0, FileType::File);
+	//}
+	//end = clock();
+	//cout << end - start << "ms" << endl;
 
 	while (true) {
 		cout << "Input : ";

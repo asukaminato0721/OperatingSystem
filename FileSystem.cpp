@@ -75,7 +75,7 @@ static inline FCBIndex GetEmptyFCB() {
 // FCB cache
 #define FCB_CACHE_SIZE 32
 FileControlBlock FCB_Cache[FCB_CACHE_SIZE];
-FCBIndex FCB_Cache_Index[FCB_CACHE_SIZE] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+FCBIndex FCB_Cache_Index[FCB_CACHE_SIZE];
 bool FCB_Cache_Dirty[FCB_CACHE_SIZE];
 static inline void LoadFCB(FCBIndex index, FileControlBlock* buff) {
 	assert(index != -1);
@@ -129,6 +129,8 @@ static inline void SaveFCBCache() {
 	}
 	return;
 }
+
+
 
 static inline uint16_t& BlockSize(uint8_t* blockBuff) { return ((Block*)blockBuff)->Size; }
 static inline uint16_t& BlockFCS(uint8_t* blockBuff) { return ((Block*)blockBuff)->FCS; }
@@ -263,6 +265,10 @@ public:
 };
 
 bool fs_init() {
+	//≥ı ºªØFCBª∫¥Ê
+	memset(FCB_Cache_Index, -1, sizeof(FCB_Cache_Index));
+	memset(FCB_Cache_Dirty, false, sizeof(FCB_Cache_Dirty));
+
 	initDisk();
 	ReadDisk((uint8_t*)&Super, 0, sizeof(Super));
 	if (strcmp(Super.Version, VERSION_STRING) == 0) {
@@ -350,6 +356,7 @@ bool CheckDisk() {
 			}
 		}
 	}
+	fileTree_FCB[0].erase(0);
 	vector<FCBIndex> queue = { 0 };
 	while (queue.size() != 0)
 	{
@@ -362,7 +369,11 @@ bool CheckDisk() {
 		}
 
 	}
-	return true;
+	if (fileTree_FCB == fileTree_Dir) {
+		printf("Disk check pass\n");
+		return true;
+	}
+	return false;
 }
 
 void PrintDiskInfo() {
@@ -628,6 +639,10 @@ int64_t ReadFile(FCBIndex file, int64_t pos, int64_t len, uint8_t* buff) {
 		printf("Error:Access denied! File is not readable.\n");
 		return -1;
 	}
+	else if (ThisFileFCB.Type == FileType::Directory) {
+		printf("Error:%s is a Directory.\n", ThisFileFCB.Name);
+		return -1;
+	}
 	uint64_t inBlockPos = pos;
 	uint64_t BytesToBeRead = len;
 	uint8_t* blockBuff = (uint8_t*)malloc(Super.BlockSize);
@@ -685,6 +700,10 @@ int64_t WriteFile(FCBIndex file, int64_t pos, int64_t len, const uint8_t* buff) 
 	}
 	else if ((ThisFileFCB.AccessMode & Access::Write) == false) {
 		printf("Error:Access denied! File is not writeable.\n");
+		return -1;
+	}
+	else if (ThisFileFCB.Type == FileType::Directory) {
+		printf("Error:%s is a Directory.\n", ThisFileFCB.Name);
 		return -1;
 	}
 	uint64_t inBlockPos = pos;
