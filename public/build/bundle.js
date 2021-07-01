@@ -450,23 +450,23 @@ var app = (function () {
 
     function get_each_context(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[17] = list[i];
+    	child_ctx[18] = list[i];
     	return child_ctx;
     }
 
-    // (327:0) {#each 显示的指令历史 as 指令}
+    // (333:0) {#each 显示的指令历史 as 指令}
     function create_each_block(ctx) {
     	let t0;
     	let div0;
-    	let t1_value = /*指令*/ ctx[17].当前路径.map(func).join("/") + "";
+    	let t1_value = /*指令*/ ctx[18].当前路径.map(func).join("/") + "";
     	let t1;
     	let t2;
     	let div1;
-    	let t3_value = /*指令*/ ctx[17].目前指令 + "";
+    	let t3_value = /*指令*/ ctx[18].目前指令 + "";
     	let t3;
     	let t4;
     	let div2;
-    	let raw_value = /*指令*/ ctx[17].指令结果 + "";
+    	let raw_value = /*指令*/ ctx[18].指令结果 + "";
 
     	const block = {
     		c: function create() {
@@ -478,9 +478,9 @@ var app = (function () {
     			t3 = text(t3_value);
     			t4 = space();
     			div2 = element("div");
-    			add_location(div0, file, 328, 2, 9109);
-    			add_location(div1, file, 331, 2, 9169);
-    			add_location(div2, file, 332, 2, 9192);
+    			add_location(div0, file, 334, 2, 9272);
+    			add_location(div1, file, 337, 2, 9332);
+    			add_location(div2, file, 338, 2, 9355);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, t0, anchor);
@@ -494,9 +494,9 @@ var app = (function () {
     			div2.innerHTML = raw_value;
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*显示的指令历史*/ 2 && t1_value !== (t1_value = /*指令*/ ctx[17].当前路径.map(func).join("/") + "")) set_data_dev(t1, t1_value);
-    			if (dirty & /*显示的指令历史*/ 2 && t3_value !== (t3_value = /*指令*/ ctx[17].目前指令 + "")) set_data_dev(t3, t3_value);
-    			if (dirty & /*显示的指令历史*/ 2 && raw_value !== (raw_value = /*指令*/ ctx[17].指令结果 + "")) div2.innerHTML = raw_value;		},
+    			if (dirty & /*显示的指令历史*/ 2 && t1_value !== (t1_value = /*指令*/ ctx[18].当前路径.map(func).join("/") + "")) set_data_dev(t1, t1_value);
+    			if (dirty & /*显示的指令历史*/ 2 && t3_value !== (t3_value = /*指令*/ ctx[18].目前指令 + "")) set_data_dev(t3, t3_value);
+    			if (dirty & /*显示的指令历史*/ 2 && raw_value !== (raw_value = /*指令*/ ctx[18].指令结果 + "")) div2.innerHTML = raw_value;		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(t0);
     			if (detaching) detach_dev(div0);
@@ -511,7 +511,7 @@ var app = (function () {
     		block,
     		id: create_each_block.name,
     		type: "each",
-    		source: "(327:0) {#each 显示的指令历史 as 指令}",
+    		source: "(333:0) {#each 显示的指令历史 as 指令}",
     		ctx
     	});
 
@@ -563,19 +563,19 @@ var app = (function () {
     			t6 = space();
     			attr_dev(a, "target", "_blank");
     			attr_dev(a, "href", "https://github.com/wuyudi/OperatingSystem/tree/online-demo#%E4%B8%80%E4%B8%AA-shell-%E7%9A%84%E5%9C%A8%E7%BA%BF%E6%A8%A1%E6%8B%9F%E5%99%A8");
-    			add_location(a, file, 310, 0, 8620);
-    			add_location(button, file, 315, 0, 8800);
+    			add_location(a, file, 316, 0, 8783);
+    			add_location(button, file, 321, 0, 8963);
     			set_style(textarea, "font-family", "Consolas");
     			set_style(textarea, "height", "10rem");
     			set_style(textarea, "width", "80rem");
     			set_style(textarea, "border-color", "transparent");
     			textarea.value = /*logo*/ ctx[3];
-    			add_location(textarea, file, 321, 2, 8902);
-    			add_location(div0, file, 320, 0, 8894);
+    			add_location(textarea, file, 327, 2, 9065);
+    			add_location(div0, file, 326, 0, 9057);
     			set_style(input, "width", "100%");
-    			add_location(input, file, 337, 2, 9243);
+    			add_location(input, file, 343, 2, 9406);
     			html_tag = new HtmlTag(null);
-    			add_location(div1, file, 336, 0, 9235);
+    			add_location(div1, file, 342, 0, 9398);
     		},
     		l: function claim(nodes) {
     			throw new Error_1("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -669,6 +669,10 @@ var app = (function () {
     	return block;
     }
 
+    function byteCount(s) {
+    	return encodeURI(s).split(/%..|./).length - 1;
+    }
+
     function last(list) {
     	return list[list.length - 1];
     }
@@ -679,6 +683,7 @@ var app = (function () {
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots("App", slots, []);
     	var _a;
+    	let canUse = false;
     	var Type;
 
     	(function (Type) {
@@ -758,7 +763,9 @@ var app = (function () {
     			[
     				"ls",
     				args => {
-    					return Object.values(目前位置().children).map(child => `<div> ${child.name}  ${child.type === Type.Folder ? `文件夹` : `文件`}</div>`).join(" ");
+    					return Object.values(目前位置().children).map(child => `<div> ${child.name}  ${child.type === Type.Folder
+					? `文件夹`
+					: `文件 ${byteCount(child.content)} Bytes`}</div>`).join(" ");
     				}
     			],
     			[
@@ -1019,7 +1026,9 @@ var app = (function () {
     	$$self.$capture_state = () => ({
     		_a,
     		writable,
+    		canUse,
     		Type,
+    		byteCount,
     		Node,
     		last,
     		logo,
@@ -1038,6 +1047,7 @@ var app = (function () {
 
     	$$self.$inject_state = $$props => {
     		if ("_a" in $$props) _a = $$props._a;
+    		if ("canUse" in $$props) canUse = $$props.canUse;
     		if ("Type" in $$props) Type = $$props.Type;
     		if ("logo" in $$props) $$invalidate(3, logo = $$props.logo);
     		if ("文件树" in $$props) $$invalidate(4, 文件树 = $$props.文件树);

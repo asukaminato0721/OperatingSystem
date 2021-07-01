@@ -1,8 +1,12 @@
 <script lang="ts">
   import { writable } from "svelte/store";
+  let canUse = false;
   enum Type {
     File,
     Folder,
+  }
+  function byteCount(s: string) {
+    return encodeURI(s).split(/%..|./).length - 1;
   }
   class Node {
     name: string;
@@ -76,7 +80,9 @@
           .map(
             (child) =>
               `<div> ${child.name}  ${
-                child.type === Type.Folder ? `文件夹` : `文件`
+                child.type === Type.Folder
+                  ? `文件夹`
+                  : `文件 ${byteCount(child.content)} Bytes`
               }</div>`
           )
           .join(" ");

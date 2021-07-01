@@ -8,7 +8,10 @@
 
 目前支持的命令:
 
+用户登录，login username password
+
 ```bash
+login admin admin
 cd 目录
 cd 任意个点
 cd folder1/folder2/folder3/../folder4/..
