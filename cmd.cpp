@@ -114,7 +114,7 @@ void login()
         }
         if (flag == 0)
         {
-            printf("\nThis user is not exist.\n");
+            printf("\nThis user dose not exist.\n");
             break; //用户不存在，先跳出循环创建新用户
         }
     } while (flag);
@@ -207,7 +207,7 @@ void pathset()
         FileControlBlock fcb;
         while (temp != 0)
         {
-            FileInfo(temp, &fcb);//首次依据当前FCB号
+            FileInfo(temp, &fcb);//首次依据当前FCB号，查找当前文件夹信息
             s = fcb.Name + s;
             s = '/' + s;
             temp = fcb.Parent;
@@ -231,6 +231,7 @@ void help()
     cat    ---  打开并读取已存在文件 \n\
     vi     ---  打开已存在文件并往里写入 \n\
     rm     ---  删除已存在文件 \n\
+    copy   ---  拷贝文件\n\
     su     ---  切换当前用户 \n\
     format ---  格式化当前文件系统 \n\
     exit   ---  退出系统 \n\
@@ -245,7 +246,6 @@ int analyse()
     string s = "";
     s1 = "";
     s2 = "";          // s存全部输入；s1用于存命令；s2用于存参数
-    //int tabcount = 0; //用于记录tab键输入个数
     int res = 0;      //命令编号
     while (1)
     {
@@ -277,7 +277,7 @@ int analyse()
             s1 = s1.substr(0, s1.find_first_of(' ')); //将while循环开始的全部输入s1，更新为命令
                                                       //第二个参数是第一个空格的位置，与命令长度相等
         }
-        int ch = _getch(); //从控制台读取一个字符，但不显示在屏幕上，在conio.h中
+        int ch = _getch(); //从控制台读取一个字符，接受一个任意键的输入，不用按回车就返回，但不显示在屏幕上，在conio.h中
         if (ch == 8)
         { //退格
             if (!s.empty())
@@ -310,17 +310,8 @@ int analyse()
             printf("%c", ch);
             s.push_back(ch);
         }
-        //用于处理按两次tab
-        /*if (ch == 9)
-        {
-            tabcount++;
-        }
-        else
-        {
-            tabcount = 0;
-        }*/
     }
-    if (s1 == "")
+    if (s1 == "")//s1为空
     {
         return -1;
     }
@@ -328,7 +319,7 @@ int analyse()
     return res; //返回命令编号
 }
 
-// 功能: 切换目录(cd .. 或者 cd dir1)
+// 功能: 切换目录(cd .. 或者 cd dir1/dir2)
 void cd(string path)
 {
     int temp_cur;
@@ -564,7 +555,7 @@ void vi() {
     }
     FCBIndex file_cur = Find(temp_cur, temps2);//根据当前文件夹号，和文件名查找文件FCB号
     if (file_cur == -1) {//如果未找到该文件，则返回
-        cout << "This file isn't exist!!" << endl;
+        cout << "This file dosen't exist!!" << endl;
         return;
     }
     FileControlBlock fcb;
@@ -692,7 +683,7 @@ void format() {
             exit(-1);
         }
         fclose(fp);
-        printf("Filesystem created successful.Please first login!\n");
+        printf("Filesystem created successful.\n");
     }
 
 }
@@ -795,6 +786,12 @@ void copy(string path) {
 
 }
 
+//改变文件权限写保护，暂未整合
+void chmod() {
+
+
+}
+
 // 功能: 显示错误
 void errcmd()
 {
@@ -830,7 +827,7 @@ void command(void)
             touch();
             break;
         case 5:
-            // open();
+            errcmd();
             break;
         case 6:
             cat();
@@ -839,7 +836,7 @@ void command(void)
             vi(); // open and write something to a particular file
             break;
         case 8:
-            // close();
+            errcmd();
             break;
         case 9:
             rm();  // 删除文件
