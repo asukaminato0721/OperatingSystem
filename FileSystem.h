@@ -79,6 +79,8 @@ FCBIndex CreateFile(const string& name, FCBIndex dir);
 void PrintDir(FCBIndex dir);
 void PrintInfo(FCBIndex file);
 
+
+
 FCBIndex Create(const string& name, FCBIndex dir, enum FileType t);
 int64_t ReadFile(FCBIndex file, int64_t pos, int64_t len, uint8_t* buff);
 int64_t WriteFile(FCBIndex file, int64_t pos, int64_t len, const uint8_t* buff);

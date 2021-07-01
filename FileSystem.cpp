@@ -1,4 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
+#define NO_CACHE
 #include "FileSystem.h"
 #include "Crypto.h"
 #include "Driver.h"
@@ -74,12 +75,18 @@ static inline FCBIndex GetEmptyFCB() {
 
 // FCB cache
 #define FCB_CACHE_SIZE 32
+#ifndef NO_CACHE
 FileControlBlock FCB_Cache[FCB_CACHE_SIZE];
 FCBIndex FCB_Cache_Index[FCB_CACHE_SIZE];
 bool FCB_Cache_Dirty[FCB_CACHE_SIZE];
+#endif
 static inline void LoadFCB(FCBIndex index, FileControlBlock* buff) {
 	assert(index != -1);
-
+#ifdef NO_CACHE
+	ReadDisk((uint8_t*)buff, (uint64_t)Super.FCBOffset * Super.BlockSize + (uint64_t)index * FILE_CONTROL_BLOCK_SIZE, FILE_CONTROL_BLOCK_SIZE);
+	buff->ReadTime = time(NULL);
+	return;
+#else
 	if (FCB_Cache_Index[index % FCB_CACHE_SIZE] == index) { // Cache命中
 		FCB_Cache[index % FCB_CACHE_SIZE].ReadTime = time(NULL);
 		memcpy(buff, &FCB_Cache[index % FCB_CACHE_SIZE], FILE_CONTROL_BLOCK_SIZE);
@@ -109,9 +116,16 @@ static inline void LoadFCB(FCBIndex index, FileControlBlock* buff) {
 	buff->ReadTime = time(NULL);*/
 
 	return;
+#endif // NO_CACHE
+
+
 }
 static inline void StoreFCB(FCBIndex index, FileControlBlock* buff) {
 	assert(index != -1);
+#ifdef NO_CACHE
+	WriteDisk((uint8_t*)buff, (uint64_t)Super.FCBOffset * Super.BlockSize + (uint64_t)index * FILE_CONTROL_BLOCK_SIZE, FILE_CONTROL_BLOCK_SIZE);
+	return;
+#else
 	if (FCB_Cache_Index[index % FCB_CACHE_SIZE] == index) {
 		memcpy(&FCB_Cache[index % FCB_CACHE_SIZE], buff, FILE_CONTROL_BLOCK_SIZE);
 		FCB_Cache_Dirty[index % FCB_CACHE_SIZE] = true;
@@ -120,14 +134,23 @@ static inline void StoreFCB(FCBIndex index, FileControlBlock* buff) {
 		WriteDisk((uint8_t*)buff, (uint64_t)Super.FCBOffset * Super.BlockSize + (uint64_t)index * FILE_CONTROL_BLOCK_SIZE, FILE_CONTROL_BLOCK_SIZE);
 	}
 	return;
+#endif
+
+
 }
 static inline void SaveFCBCache() {
+#ifdef NO_CACHE
+	return;
+#else
 	for (size_t i = 0; i < FCB_CACHE_SIZE; i++) {
 		if (FCB_Cache_Dirty[i] == true) {
 			WriteDisk((uint8_t*)&FCB_Cache[i], (uint64_t)Super.FCBOffset * Super.BlockSize + (uint64_t)FCB_Cache_Index[i] * FILE_CONTROL_BLOCK_SIZE, FILE_CONTROL_BLOCK_SIZE);
 		}
 	}
 	return;
+#endif // NO_CACHE
+
+
 }
 
 
@@ -265,9 +288,13 @@ public:
 };
 
 bool fs_init() {
+#ifndef NO_CACHE
 	//初始化FCB缓存
 	memset(FCB_Cache_Index, -1, sizeof(FCB_Cache_Index));
 	memset(FCB_Cache_Dirty, false, sizeof(FCB_Cache_Dirty));
+#endif // !NO_CACHE
+
+
 
 	initDisk();
 	ReadDisk((uint8_t*)&Super, 0, sizeof(Super));
@@ -356,11 +383,16 @@ bool CheckDisk() {
 			}
 		}
 	}
-	fileTree_FCB[0].erase(0);
 	vector<FCBIndex> queue = { 0 };
 	while (queue.size() != 0)
 	{
 		FCBIndex f = queue.back();
+		if (f < 0 || FCBBitMap->get(f) == false) {
+			printf("Disk check failed! FCB index not exists.\n");
+
+			return false;
+
+		}
 		queue.pop_back();
 		auto&& ls = GetChildren(f);
 		if (ls.size() > 0) {
@@ -369,11 +401,15 @@ bool CheckDisk() {
 		}
 
 	}
+	fileTree_Dir[0].insert(0);
 	if (fileTree_FCB == fileTree_Dir) {
 		printf("Disk check pass\n");
 		return true;
 	}
-	return false;
+	else {
+		printf("Disk check failed!Parent tree & Child tree not match.\n");
+		return false;
+	}
 }
 
 void PrintDiskInfo() {
@@ -570,8 +606,9 @@ FCBIndex Create(const string& name, FCBIndex dir, enum FileType t) {
 	//检查重名并写入父目录(将fcbIndex写入父目录)
 
 	FileControlBlock NameCheck;
-	for (size_t i = 0; i < 10; i++) {
-		if (dirFCB.DirectBlock[i] == -1) { //存入新的目录页
+	for (size_t page = 0; page < 10; page++) {
+
+		if (dirFCB.DirectBlock[page] == -1) { //存入新的目录页
 			//真正写入FCB
 			FCBBitMap->set(fcbIndex, true);
 			StoreFCB(fcbIndex, &newFileFCB);
@@ -579,21 +616,21 @@ FCBIndex Create(const string& name, FCBIndex dir, enum FileType t) {
 			MakeDirBlock(fcbIndex, BlockBuff);
 			BlockIndex newDirPage = GetEmptyBlock();
 			DataBitMap->set(newDirPage, true);
-			dirFCB.DirectBlock[i] = newDirPage;
+			dirFCB.DirectBlock[page] = newDirPage;
+			StoreFCB(dir, &dirFCB);
 			StoreBlock(newDirPage, BlockBuff);
 			goto CreateFile_end;
 		}
 		else { //尝试加入现有目录页，顺便检查重名
-			LoadBlock(dirFCB.DirectBlock[i], BlockBuff);
-			for (FCBIndex* iter = (FCBIndex*)(BlockBuff + sizeof(Block)); iter < (FCBIndex*)(BlockBuff + Super.BlockSize); iter++) {
+			LoadBlock(dirFCB.DirectBlock[page], BlockBuff);
+			for (FCBIndex* iter = (FCBIndex*)(BlockBuff + sizeof(Block)); iter != (FCBIndex*)(BlockBuff + Super.BlockSize); iter++) {
 				if (*iter == -1) {
 					//真正写入FCB
 					FCBBitMap->set(fcbIndex, true);
 					StoreFCB(fcbIndex, &newFileFCB);
-
 					*iter = fcbIndex;
-					BlockSize(BlockBuff) += sizeof(FCBIndex);
-					StoreBlock(dirFCB.DirectBlock[i], BlockBuff);
+					//BlockSize(BlockBuff) += sizeof(FCBIndex);
+					StoreBlock(dirFCB.DirectBlock[page], BlockBuff);
 					goto CreateFile_end;
 				}
 				else {
@@ -605,13 +642,14 @@ FCBIndex Create(const string& name, FCBIndex dir, enum FileType t) {
 					}
 				}
 			}
+
 		}
 	}
 
 CreateFile_end:
 	dirFCB.ModifyTime = time(NULL);
 	dirFCB.ReadTime = time(NULL);
-	StoreFCB(dir, &dirFCB);
+
 	WriteDisk(FCBBitMap->data, (uint64_t)Super.BlockSize * Super.FCBBitmapOffset, FCBBitMap->SizeOfByte);    //写入FCB的bitmap
 	WriteDisk(DataBitMap->data, (uint64_t)Super.BlockSize * Super.DataBitmapOffset, DataBitMap->SizeOfByte); //写入DataBlock的bitmap
 	free(BlockBuff);
@@ -864,6 +902,9 @@ bool RenameFile(const string& newName, FCBIndex file) {
 }
 
 bool ChangeAccessMode(FCBIndex file, uint8_t newMode) {
+
+	
+
 	FileControlBlock fileFCB;
 	LoadFCB(file, &fileFCB);
 	fileFCB.AccessMode = newMode;

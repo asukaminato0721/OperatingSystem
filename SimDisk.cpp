@@ -2,9 +2,9 @@
 
 #include <bits/stdc++.h>
 #include <iostream>
-
 #include "Driver.h"
 #include "FileSystem.h"
+
 using namespace std;
 
 #define TestSize 3000
@@ -12,23 +12,43 @@ uint8_t buff[TestSize];
 char input[1 << 20];
 FCBIndex workDir = 0;
 
+
+
 int main() {
 
 	if (fs_init() == false) {
 		cout << "Format Disk\n";
-		FormatDisk(4 * 1 << 10);
+		FormatDisk(8 * 1 << 10);
 	}
 	PrintDiskInfo();
 	//CheckDisk();
 
+
+	//uint8_t buff[8 * 1 << 10];
+	//for (size_t i = 0; i < (8 * 1 << 10); i++)
+	//{
+	//	buff[i] = rand();
+	//}
 	//time_t start, end;
 	//start = clock();
-	//for (size_t i = 0; i < 3000; i++)
+	//for (size_t i = 0; i < 100; i++)
 	//{
 	//	Create("File_" + to_string(i), 0, FileType::File);
+	//	auto Fileid = Find(0, "File_" + to_string(i));
+	//	if (Fileid != -1) {
+	//		WriteFile(Fileid, 0, rand() % (8 * 1 << 10), buff);
+	//	}
+	//	else {
+	//		cout << "Find err" << endl;
+	//	}
 	//}
 	//end = clock();
 	//cout << end - start << "ms" << endl;
+
+
+
+
+
 
 	while (true) {
 		cout << "Input : ";
@@ -37,6 +57,9 @@ int main() {
 		if (memcmp(input, "exit", 4) == 0) {
 			fs_Destruction();
 			return 0;
+		}
+		if (memcmp(input, "chkdsk", 4) == 0) {
+			CheckDisk();
 		}
 		else if (memcmp(input, "stat", 4) == 0) {
 			PrintDiskInfo();
@@ -97,7 +120,7 @@ int main() {
 			else {
 				for (size_t i = 0; i < fcb.Size; i++) {
 					printf("%02X ", inFileBuff[i]);
-					if ((i - 1) % 64 == 0) {
+					if ((i - 1) % 32 == 0) {
 						cout << endl;
 					}
 				}
